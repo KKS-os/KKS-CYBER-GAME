@@ -3,6 +3,8 @@ import { Play, Volume2, VolumeX, Music, Compass, Zap, Crosshair, Shield, Activit
 import { GameSettings, GameStats } from '../types';
 import { assetUrls } from '../assetLoader';
 import { CombatGuideMenu } from './CombatGuideMenu';
+import { DailyMissionCard } from './DailyMissionCard';
+import { dailyMissionManager } from '../dailyMissionSystem';
 
 interface StartScreenProps {
   onStart: () => void;
@@ -50,7 +52,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         <div
           onClick={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
-          className="w-full max-w-3xl border border-cyan-500/40 bg-[#070412]/90 backdrop-blur-xl p-4 sm:p-7 md:p-8 relative flex flex-col items-center shadow-[0_0_80px_rgba(0,229,201,0.2)] rounded-lg cursor-default font-mono-tech z-10"
+          className="w-full max-w-3xl max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none border border-cyan-500/40 bg-[#070412]/90 backdrop-blur-xl p-3.5 sm:p-7 md:p-8 relative flex flex-col items-center shadow-[0_0_80px_rgba(0,229,201,0.2)] rounded-lg cursor-default font-mono-tech z-10"
         >
           {/* Geometric Corner Tactical Brackets */}
           <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-[#00FFD1] pointer-events-none" />
@@ -59,18 +61,18 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-[#00FFD1] pointer-events-none" />
 
           {/* Tactical Status Pill */}
-          <div className="flex items-center gap-2.5 px-3 py-1 bg-black/60 border border-cyan-500/30 rounded-full mb-2 sm:mb-3 pointer-events-none">
-            <Radio size={12} className="text-[#00FFD1] animate-pulse" />
-            <span className="text-[9px] sm:text-[10px] tracking-[0.25em] text-[#00FFD1] font-bold uppercase">
-              NEURAL DIRECT LINK // SECTOR 01 ENGAGED
+          <div className="flex items-center gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 bg-black/60 border border-cyan-500/30 rounded-full mb-1.5 sm:mb-3 pointer-events-none">
+            <Radio size={11} className="text-[#00FFD1] animate-pulse" />
+            <span className="text-[8px] sm:text-[10px] tracking-[0.2em] text-[#00FFD1] font-bold uppercase">
+              NEURAL DIRECT LINK // SECTOR 01
             </span>
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-[#00FFD1] via-white to-[#FF00E5] mb-1 drop-shadow-[0_0_30px_rgba(0,255,209,0.5)] pointer-events-none">
+          <h1 className="text-xl xs:text-2xl sm:text-4xl md:text-5xl font-black tracking-tight uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-[#00FFD1] via-white to-[#FF00E5] mb-0.5 sm:mb-1 drop-shadow-[0_0_30px_rgba(0,255,209,0.5)] pointer-events-none">
             NEON CYBER RUNNER
           </h1>
-          <div className="text-cyan-400 text-[10px] sm:text-xs tracking-[0.3em] uppercase mb-3 opacity-90 font-semibold pointer-events-none flex items-center gap-2">
+          <div className="text-cyan-400 text-[8.5px] sm:text-xs tracking-[0.25em] uppercase mb-2 sm:mb-3 opacity-90 font-semibold pointer-events-none flex items-center gap-2">
             <span>HIGH-FIDELITY CYBERNETIC COMBAT ENGINE</span>
           </div>
 
@@ -124,7 +126,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
           {/* High Score & Telemetry */}
           {stats.highScore > 0 && (
-            <div className="flex items-center justify-around w-full max-w-xl bg-black/50 border border-cyan-500/20 px-3 py-1.5 mb-3 rounded pointer-events-none">
+            <div className="flex items-center justify-around w-full max-w-xl bg-black/50 border border-cyan-500/20 px-3 py-1.5 mb-2.5 rounded pointer-events-none">
               <div className="flex flex-col items-center">
                 <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-[#FF00E5] font-bold">HIGH SCORE</span>
                 <span className="text-base sm:text-lg font-black text-[#FF00E5]">
@@ -140,6 +142,13 @@ export const StartScreen: React.FC<StartScreenProps> = ({
               </div>
             </div>
           )}
+
+          {/* Daily Mission Directive Card */}
+          <div className="w-full max-w-xl mb-3 pointer-events-auto">
+            <DailyMissionCard
+              mission={dailyMissionManager.getActiveMission()}
+            />
+          </div>
 
           {/* Action Buttons Row (Start + How to Play) */}
           <div className="flex flex-col sm:flex-row gap-2.5 w-full max-w-xl mb-3">

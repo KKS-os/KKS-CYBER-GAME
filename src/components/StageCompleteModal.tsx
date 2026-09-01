@@ -49,7 +49,7 @@ export const StageCompleteModal: React.FC<StageCompleteModalProps> = ({
     >
       <div
         id="stage-complete-panel"
-        className="w-full max-w-xl bg-[#0a0618]/95 border-2 border-[#00FFD1] shadow-[0_0_50px_rgba(0,255,209,0.35)] p-6 sm:p-8 rounded-none relative overflow-hidden flex flex-col gap-5 font-mono-tech"
+        className="w-full max-w-xl max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none bg-[#0a0618]/95 border-2 border-[#00FFD1] shadow-[0_0_50px_rgba(0,255,209,0.35)] p-4 sm:p-7 rounded-none relative overflow-hidden flex flex-col gap-4 sm:gap-5 font-mono-tech"
       >
         {/* Holographic Top Banner Accent */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#FF00E5] via-[#00FFD1] to-[#00FF66] shadow-[0_0_15px_#00FFD1]"></div>

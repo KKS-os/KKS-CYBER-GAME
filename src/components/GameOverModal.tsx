@@ -1,6 +1,8 @@
 import React from 'react';
 import { RotateCcw, Trophy, Navigation, Disc, Zap } from 'lucide-react';
 import { GameStats } from '../types';
+import { DailyMissionCard } from './DailyMissionCard';
+import { dailyMissionManager } from '../dailyMissionSystem';
 
 interface GameOverModalProps {
   score: number;
@@ -39,7 +41,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        className="w-full max-w-lg border-2 border-[#FF00E5]/60 bg-[#0A0A0A]/95 p-6 sm:p-10 relative flex flex-col items-center shadow-[0_0_60px_rgba(255,0,229,0.3)] font-mono-tech cursor-default"
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none border-2 border-[#FF00E5]/60 bg-[#0A0A0A]/95 p-4 sm:p-8 md:p-10 relative flex flex-col items-center shadow-[0_0_60px_rgba(255,0,229,0.3)] font-mono-tech cursor-default"
       >
         {/* Geometric Skewed Accents */}
         <div className="absolute -top-3 -left-3 w-7 h-7 bg-[#FF00E5] shadow-[0_0_15px_#FF00E5] transform skew-x-12 pointer-events-none"></div>
@@ -80,7 +82,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
 
         {/* Telemetry Metrics Grid */}
-        <div className="grid grid-cols-3 gap-2 w-full max-w-sm mb-6 pointer-events-none">
+        <div className="grid grid-cols-3 gap-2 w-full max-w-sm mb-3 pointer-events-none">
           <div className="border border-[#00FFD1]/30 bg-[#050505] p-2.5 flex flex-col items-center">
             <Navigation size={14} className="text-[#00FFD1] mb-1" />
             <span className="text-[8px] uppercase tracking-widest text-[#00FFD1]/70 font-bold">Distance</span>
@@ -98,6 +100,11 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <span className="text-[8px] uppercase tracking-widest text-[#00FF66]/70 font-bold">Peak Streak</span>
             <span className="text-sm font-bold text-[#00FF66]">{maxCombo}x</span>
           </div>
+        </div>
+
+        {/* Daily Mission Directive Status */}
+        <div className="w-full max-w-sm mb-5">
+          <DailyMissionCard mission={dailyMissionManager.getActiveMission()} compact />
         </div>
 
         {/* REBOOT Button */}

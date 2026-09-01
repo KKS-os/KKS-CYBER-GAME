@@ -170,15 +170,10 @@ export default function App() {
       setWeaponArsenal({ ...arsenal });
     };
 
-    // Resize Handler with DPR (Device Pixel Ratio)
+    // Responsive Dynamic Resize Handler with DPR (Device Pixel Ratio)
     const handleResize = () => {
-      if (!canvas) return;
-      const width = containerRef.current?.clientWidth || window.innerWidth || 1200;
-      const height = containerRef.current?.clientHeight || window.innerHeight || 600;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      canvas.width = Math.max(Math.floor(width * dpr), 640);
-      canvas.height = Math.max(Math.floor(height * dpr), 360);
+      if (!canvas || !engineRef.current) return;
+      engineRef.current.calibrateRetinaDPI();
     };
 
     const resizeObserver = new ResizeObserver(() => {
@@ -189,6 +184,7 @@ export default function App() {
       resizeObserver.observe(containerRef.current);
     }
     window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
     handleResize();
 
     engine.startGame();
@@ -197,6 +193,7 @@ export default function App() {
       engine.stop();
       resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
     };
   }, []);
 

@@ -30,6 +30,7 @@ import {
   RadarTelemetryData,
 } from '../types';
 import { RadarMinimap } from './RadarMinimap';
+import { DailyMissionHUD } from './DailyMissionHUD';
 
 interface HUDProps {
   score: number;
@@ -106,30 +107,38 @@ export const HUD: React.FC<HUDProps> = ({
   const deltaColor = isDeltaAhead ? '#00FF66' : speedrunDelta?.status === 'BEHIND' ? '#FF0055' : '#00FFD1';
 
   return (
-    <header id="game-hud" className="absolute inset-x-0 top-0 flex flex-col pointer-events-none z-20 select-none">
+    <header
+      id="game-hud"
+      style={{
+        paddingTop: 'max(0.25rem, env(safe-area-inset-top, 0px))',
+        paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px))',
+      }}
+      className="absolute inset-x-0 top-0 flex flex-col pointer-events-none z-20 select-none"
+    >
       {/* Cyber Visor Corner Holographic Telemetry Brackets */}
       <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#00FFD1]/60 pointer-events-none"></div>
       <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#00FFD1]/60 pointer-events-none"></div>
 
       {/* Top HUD Bar */}
-      <div className="flex justify-between items-center px-3 sm:px-6 md:px-10 py-1.5 sm:py-2 border-b border-[#00FFD1]/20 bg-[#0A0A0A]/85 backdrop-blur-md min-h-[50px]">
+      <div className="flex justify-between items-center px-2 sm:px-6 md:px-10 py-1 sm:py-1.5 border-b border-[#00FFD1]/20 bg-[#0A0A0A]/85 backdrop-blur-md min-h-[46px] sm:min-h-[50px]">
         {/* Left: Glowing Green SYSTEM INTEGRITY Health/Energy Bar */}
-        <div className="flex flex-col items-start gap-1">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Activity size={13} className="animate-pulse" style={{ color: integrityColor }} />
+        <div className="flex flex-col items-start gap-0.5 sm:gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Activity size={12} className="animate-pulse" style={{ color: integrityColor }} />
             <span
-              className="text-[9px] sm:text-xs font-mono-tech font-black tracking-widest uppercase drop-shadow-[0_0_8px_#00FF66]"
+              className="text-[8px] sm:text-xs font-mono-tech font-black tracking-widest uppercase drop-shadow-[0_0_8px_#00FF66]"
               style={{ color: integrityColor }}
             >
-              SYSTEM INTEGRITY
+              INTEGRITY
             </span>
-            <span className="text-[9px] sm:text-xs font-mono-tech font-bold" style={{ color: integrityColor }}>
+            <span className="text-[8px] sm:text-xs font-mono-tech font-bold" style={{ color: integrityColor }}>
               {integrity}%
             </span>
           </div>
 
           {/* Health Bar Container */}
-          <div className="w-28 sm:w-40 md:w-52 h-1.5 sm:h-2 bg-[#111111] border border-[#00FF66]/40 p-0.5 relative overflow-hidden shadow-[0_0_10px_rgba(0,255,102,0.3)]">
+          <div className="w-20 xs:w-28 sm:w-40 md:w-52 h-1.5 sm:h-2 bg-[#111111] border border-[#00FF66]/40 p-0.5 relative overflow-hidden shadow-[0_0_10px_rgba(0,255,102,0.3)]">
             <div
               className="h-full transition-all duration-200"
               style={{
@@ -142,40 +151,40 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Center: OBJECTIVE HUD - BIO-CORES COLLECTED & SPEEDRUN TELEMETRY */}
-        <div className="flex flex-col items-center gap-1 font-mono-tech">
+        <div className="flex flex-col items-center gap-0.5 sm:gap-1 font-mono-tech">
           {/* Stage Name Badge & Rhythm BPM */}
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest bg-[#00FFD1]/10 text-[#00FFD1] border border-[#00FFD1]/40 shadow-[0_0_8px_rgba(0,255,209,0.3)]">
+          <div className="hidden xs:flex items-center gap-1.5 sm:gap-2">
+            <span className="px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest bg-[#00FFD1]/10 text-[#00FFD1] border border-[#00FFD1]/40 shadow-[0_0_8px_rgba(0,255,209,0.3)]">
               STAGE {stageNum}: {stageName}
             </span>
             <div
-              className={`flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono-tech border transition-all ${
+              className={`flex items-center gap-1 px-1 sm:px-1.5 py-0.5 text-[8px] sm:text-[9px] font-mono-tech border transition-all ${
                 isRhythmNear
                   ? 'bg-[#00FFD1]/20 text-[#00FFD1] border-[#00FFD1] shadow-[0_0_10px_#00FFD1]'
                   : 'bg-[#120a28]/60 text-gray-400 border-white/20'
               }`}
             >
-              <Radio size={10} className={isRhythmNear ? 'animate-pulse text-[#00FFD1]' : ''} />
+              <Radio size={9} className={isRhythmNear ? 'animate-pulse text-[#00FFD1]' : ''} />
               <span>{bpm} BPM</span>
             </div>
           </div>
 
           {/* Primary Objective Pod */}
-          <div className="flex items-center gap-2.5 bg-[#060312]/90 px-3 py-1 border border-[#00FFD1]/50 shadow-[0_0_15px_rgba(0,255,209,0.25)]">
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wide text-white">
-              <Target size={14} className="text-[#00FFD1] animate-spin-slow" />
-              <span className="text-[#00FFD1] text-[10px] sm:text-xs uppercase font-bold">Bio-Cores:</span>
-              <span className="text-white drop-shadow-[0_0_8px_#00FFD1]">{collected} / {totalCores}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2.5 bg-[#060312]/90 px-2 sm:px-3 py-0.5 sm:py-1 border border-[#00FFD1]/50 shadow-[0_0_15px_rgba(0,255,209,0.25)]">
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs font-black tracking-wide text-white">
+              <Target size={12} className="text-[#00FFD1] animate-spin-slow shrink-0" />
+              <span className="text-[#00FFD1] text-[8.5px] sm:text-[10px] uppercase font-bold">Cores:</span>
+              <span className="text-white drop-shadow-[0_0_8px_#00FFD1]">{collected}/{totalCores}</span>
             </div>
 
             {/* 3 Core Status Pills */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               {[0, 1, 2].map((idx) => {
                 const isCollected = idx < collected;
                 return (
                   <div
                     key={idx}
-                    className={`w-3 h-3 rounded-none border transition-all duration-300 ${
+                    className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-none border transition-all duration-300 ${
                       isCollected
                         ? 'bg-[#00FFD1] border-[#ffffff] shadow-[0_0_10px_#00FFD1]'
                         : 'bg-[#180a24] border-[#FF0055]/50 animate-pulse'
@@ -203,7 +212,7 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Right: Scores, Ghost Speedrun Delta & Audio/Pause */}
-        <div className="flex items-center gap-2 sm:gap-4 font-mono-tech">
+        <div className="flex items-center gap-1.5 sm:gap-3 font-mono-tech">
           {/* Ghost Delta Pill (If Active) */}
           {speedrunDelta?.hasGhost && (
             <div
@@ -221,10 +230,10 @@ export const HUD: React.FC<HUDProps> = ({
 
           {/* Current Score */}
           <div className="flex flex-col items-end">
-            <span className="text-[#00FF66] opacity-90 text-[8px] sm:text-[9px] uppercase font-bold tracking-wider drop-shadow-[0_0_6px_rgba(0,255,102,0.5)]">
+            <span className="text-[#00FF66] opacity-90 text-[7.5px] sm:text-[9px] uppercase font-bold tracking-wider drop-shadow-[0_0_6px_rgba(0,255,102,0.5)]">
               SCORE
             </span>
-            <span className="text-xs sm:text-sm md:text-base font-black text-[#00FF66] drop-shadow-[0_0_12px_#00FF66] tracking-wider">
+            <span className="text-[11px] sm:text-sm md:text-base font-black text-[#00FF66] drop-shadow-[0_0_12px_#00FF66] tracking-wider">
               {formattedScore}
             </span>
           </div>
@@ -238,9 +247,9 @@ export const HUD: React.FC<HUDProps> = ({
               onClick={onOpenGuide}
               aria-label="Combat & Strategy Guide (?)"
               title="Combat & Strategy Guide (?)"
-              className="h-6 sm:h-7 px-1.5 sm:px-2 flex items-center gap-1 border border-[#00FFD1] bg-[#00FFD1]/20 hover:bg-[#00FFD1] hover:text-black text-[#00FFD1] shadow-[0_0_12px_rgba(0,255,209,0.5)] transition-all cursor-pointer touch-manipulation font-mono-tech text-[9px] sm:text-[10px] font-black uppercase tracking-wider"
+              className="h-6 sm:h-7 px-1.5 sm:px-2 flex items-center gap-1 border border-[#00FFD1] bg-[#00FFD1]/20 hover:bg-[#00FFD1] hover:text-black text-[#00FFD1] shadow-[0_0_12px_rgba(0,255,209,0.5)] transition-all cursor-pointer touch-manipulation font-mono-tech text-[8.5px] sm:text-[10px] font-black uppercase tracking-wider"
             >
-              <HelpCircle size={13} className="text-[#00FFD1] animate-pulse shrink-0" />
+              <HelpCircle size={12} className="text-[#00FFD1] animate-pulse shrink-0" />
               <span className="hidden xs:inline sm:inline">GUIDE</span>
             </button>
 
@@ -277,78 +286,93 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
       </div>
 
-      {/* Top-Left Floating Tactical Radar Mini-Map (Positioned precisely below SYSTEM INTEGRITY) */}
+      {/* Top-Left Floating Tactical Radar Mini-Map */}
       {settings.minimapEnabled !== false && (
         <div
           id="hud-minimap-anchor"
-          className="absolute top-[58px] sm:top-[64px] left-3 sm:left-6 md:left-10 z-30 pointer-events-auto flex flex-col items-start"
+          className="absolute top-[50px] sm:top-[56px] left-2 sm:left-4 md:left-8 z-30 pointer-events-auto flex flex-col items-start"
         >
           <RadarMinimap
             getTelemetry={getRadarTelemetry}
-            size={100}
+            size={88}
           />
         </div>
       )}
 
-      {/* Sub-Header: Active Buffs, Multiplier & Rhythm Streak (Framed neatly beside the Mini-Map) */}
-      <div className="flex items-center justify-between pl-32 sm:pl-36 md:pl-40 pr-3 sm:pr-6 md:pr-10 py-1 pointer-events-none">
-        <div className="flex items-center gap-2">
+      {/* Top-Right Floating Daily Mission Directive Tracker */}
+      <div
+        id="hud-daily-mission-anchor"
+        className="absolute top-[50px] sm:top-[56px] right-2 sm:right-4 md:right-8 z-30 pointer-events-auto flex flex-col items-end max-w-[150px] sm:max-w-xs"
+      >
+        <DailyMissionHUD />
+      </div>
+
+      {/* Sub-Header: Active Buffs, Multiplier & Rhythm Streak */}
+      <div className="flex items-center justify-between pl-26 sm:pl-32 md:pl-36 pr-26 sm:pr-32 md:pr-36 py-1 pointer-events-none flex-wrap gap-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {comboCount > 0 && (
-            <div className="border border-[#FF00E5] bg-[#0A0A0A]/90 px-2 py-0.5 text-[9px] sm:text-[10px] font-mono-tech text-[#FF00E5] flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,0,229,0.4)] animate-pulse">
+            <div className="border border-[#FF00E5] bg-[#0A0A0A]/90 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-mono-tech text-[#FF00E5] flex items-center gap-1 shadow-[0_0_12px_rgba(255,0,229,0.4)] animate-pulse">
               <span className="w-1.5 h-1.5 bg-[#FF00E5]"></span>
               <span className="font-bold">x{comboMultiplier} COMBO ({comboCount})</span>
             </div>
           )}
 
           {beatStreak > 0 && (
-            <div className="border border-[#00FFD1] bg-[#00FFD1]/10 px-2 py-0.5 text-[9px] sm:text-[10px] font-mono-tech text-[#00FFD1] flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,255,209,0.4)]">
-              <Zap size={10} className="text-[#00FFD1]" />
-              <span className="font-bold">⚡ BEAT STREAK x{beatStreak}</span>
+            <div className="border border-[#00FFD1] bg-[#00FFD1]/10 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-mono-tech text-[#00FFD1] flex items-center gap-1 shadow-[0_0_12px_rgba(0,255,209,0.4)]">
+              <Zap size={9} className="text-[#00FFD1]" />
+              <span className="font-bold">⚡ x{beatStreak}</span>
             </div>
           )}
 
           {/* Portal Activation Banner in Sub-Header */}
           {isPortalUnlocked ? (
-            <div className="border border-[#00FF66] bg-[#00FF66]/15 px-2 py-0.5 text-[9px] sm:text-[10px] font-mono-tech text-[#00FF66] uppercase font-black tracking-widest animate-pulse shadow-[0_0_12px_#00FF66] flex items-center gap-1.5">
-              <Unlock size={11} />
-              <span>EXIT PORTAL ACTIVATED // ESCAPE TO CLEAR SECTOR</span>
+            <div className="border border-[#00FF66] bg-[#00FF66]/15 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-mono-tech text-[#00FF66] uppercase font-black tracking-widest animate-pulse shadow-[0_0_12px_#00FF66] flex items-center gap-1">
+              <Unlock size={10} />
+              <span>PORTAL READY // ESCAPE NOW</span>
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-1.5 border border-[#FF0055]/40 bg-[#0A0A0A]/90 px-2 py-0.5 text-[9px] font-mono-tech text-[#FF0055] uppercase">
-              <Lock size={10} />
-              <span>EXIT PORTAL LOCKED // {3 - collected} CORES NEEDED</span>
+            <div className="hidden sm:flex items-center gap-1 border border-[#FF0055]/40 bg-[#0A0A0A]/90 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-mono-tech text-[#FF0055] uppercase">
+              <Lock size={9} />
+              <span>PORTAL LOCKED // {3 - collected} CORES</span>
             </div>
           )}
         </div>
 
         {/* Active Powerups */}
-        <div className="flex items-center gap-2 font-mono-tech">
+        <div className="flex items-center gap-1.5 font-mono-tech flex-wrap">
           {hasShield && (
-            <div className="border border-[#00FFD1] bg-[#050505]/90 px-2 py-0.5 text-[9px] text-[#00FFD1] flex items-center gap-1 shadow-[0_0_10px_#00FFD1]">
-              <Shield size={10} className="text-[#00FFD1]" />
+            <div className="border border-[#00FFD1] bg-[#050505]/90 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] text-[#00FFD1] flex items-center gap-1 shadow-[0_0_10px_#00FFD1]">
+              <Shield size={9} className="text-[#00FFD1]" />
               <span className="uppercase font-bold">SHIELD</span>
             </div>
           )}
 
           {overdriveTimer > 0 && (
-            <div className="border border-[#FF00E5] bg-[#050505]/90 px-2 py-0.5 text-[9px] text-[#FF00E5] flex items-center gap-1 shadow-[0_0_12px_#FF00E5]">
-              <Zap size={10} className="text-[#FF00E5] animate-bounce" />
+            <div className="border border-[#FF00E5] bg-[#050505]/90 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] text-[#FF00E5] flex items-center gap-1 shadow-[0_0_12px_#FF00E5]">
+              <Zap size={9} className="text-[#FF00E5] animate-bounce" />
               <span className="uppercase font-bold">OVERDRIVE ({Math.ceil(overdriveTimer / 60)}s)</span>
             </div>
           )}
 
           {chronoTimer > 0 && (
-            <div className="border border-[#00FF66] bg-[#050505]/90 px-2 py-0.5 text-[9px] text-[#00FF66] flex items-center gap-1 shadow-[0_0_10px_#00FF66]">
-              <Clock size={10} className="text-[#00FF66]" />
+            <div className="border border-[#00FF66] bg-[#050505]/90 px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] text-[#00FF66] flex items-center gap-1 shadow-[0_0_10px_#00FF66]">
+              <Clock size={9} className="text-[#00FF66]" />
               <span className="uppercase font-bold">SLOW ({Math.ceil(chronoTimer / 60)}s)</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Cyberpunk Weapon Arsenal Quick-Bar (Bottom Center) */}
+      {/* Cyberpunk Weapon Arsenal Quick-Bar (Bottom Center, Responsive & Thumb-Safe) */}
       {weaponArsenal && (
-        <aside id="weapon-arsenal-dock" aria-label="Weapon Arsenal Quick-Bar" className="fixed bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1 bg-[#060312]/95 border border-[#00FFD1]/40 shadow-[0_0_20px_rgba(0,255,209,0.25)] pointer-events-auto z-30 font-mono-tech select-none backdrop-blur-md">
+        <aside
+          id="weapon-arsenal-dock"
+          aria-label="Weapon Arsenal Quick-Bar"
+          style={{
+            bottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+          }}
+          className="fixed left-1/2 -translate-x-1/2 max-w-[calc(100vw-250px)] sm:max-w-none flex items-center gap-1 sm:gap-1.5 p-0.5 sm:p-1 bg-[#060312]/95 border border-[#00FFD1]/40 shadow-[0_0_20px_rgba(0,255,209,0.25)] pointer-events-auto z-30 font-mono-tech select-none backdrop-blur-md overflow-x-auto scrollbar-none"
+        >
           {(Object.entries(weaponArsenal) as [WeaponType, WeaponInfo][]).map(([key, w], idx) => {
             const wType = key;
             const isEquipped = activeWeapon === wType;
@@ -361,7 +385,7 @@ export const HUD: React.FC<HUDProps> = ({
                 type="button"
                 disabled={!isUnlocked}
                 onClick={() => isUnlocked && onSelectWeapon?.(wType)}
-                className={`relative px-2 py-1 flex items-center gap-1.5 border transition-all text-left ${
+                className={`relative px-1.5 sm:px-2 py-0.5 sm:py-1 shrink-0 flex items-center gap-1 sm:gap-1.5 border transition-all text-left ${
                   isEquipped
                     ? 'bg-[#180a2c] border-[#FF00E5] shadow-[0_0_15px_rgba(255,0,229,0.5)] scale-105'
                     : isUnlocked
@@ -371,7 +395,7 @@ export const HUD: React.FC<HUDProps> = ({
               >
                 {/* Hotkey Number Badge */}
                 <span
-                  className={`text-[9px] font-bold px-1 ${
+                  className={`text-[8px] sm:text-[9px] font-bold px-1 ${
                     isEquipped ? 'bg-[#FF00E5] text-black' : isUnlocked ? 'bg-[#00FFD1]/20 text-[#00FFD1]' : 'bg-gray-800 text-gray-500'
                   }`}
                 >
@@ -379,10 +403,10 @@ export const HUD: React.FC<HUDProps> = ({
                 </span>
 
                 {/* Weapon Icon & Name */}
-                <span className="text-xs">{w.icon}</span>
+                <span className="text-[10px] sm:text-xs">{w.icon}</span>
                 <div className="flex flex-col">
                   <span
-                    className={`text-[9px] font-black uppercase tracking-wider leading-none ${
+                    className={`text-[8px] sm:text-[9px] font-black uppercase tracking-wider leading-none ${
                       isEquipped ? 'text-[#FF00E5] drop-shadow-[0_0_6px_#FF00E5]' : isUnlocked ? 'text-white' : 'text-gray-500'
                     }`}
                   >

@@ -24,7 +24,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
-        className="w-full max-w-lg border-2 border-[#00FFD1]/50 bg-[#0A0A0A]/95 p-8 sm:p-12 relative flex flex-col items-center justify-center shadow-[0_0_60px_rgba(0,255,209,0.2)] font-mono-tech cursor-default"
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none border-2 border-[#00FFD1]/50 bg-[#0A0A0A]/95 p-5 sm:p-10 relative flex flex-col items-center justify-center shadow-[0_0_60px_rgba(0,255,209,0.2)] font-mono-tech cursor-default"
       >
         {/* Decorative Skewed Cyber Accents */}
         <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#FF00E5] shadow-[0_0_15px_#FF00E5] transform skew-x-12 pointer-events-none"></div>

@@ -9,6 +9,10 @@ import {
   BoundingBox,
   PlayerCombatMove,
   ProAICombatDirectorState,
+  DynamicComboInputType,
+  DynamicComboStep,
+  DynamicComboState,
+  EnemyComboPredictionResult,
 } from './types';
 import { sound } from './audio';
 
@@ -16,9 +20,10 @@ import { sound } from './audio';
  * ============================================================================
  * PRO-LEVEL AI COMBAT MEMORY & REACTION DIRECTOR (COMPETITIVE GRADE)
  * ============================================================================
- * Tracks player input patterns in a rolling 5-move buffer.
- * Adapts evasion and frame-perfect parry rates up to 95% against spam.
- * Enforces "Executioner Mode" deep suppression when players idle/turtle >1.5s.
+ * Tracks player input patterns in a rolling buffer.
+ * Penalizes repetitive single-button mashing (reduced to 20% damage/ineffective).
+ * Rewards rotating input combos (Left Click -> Right Click -> Action Key) with 5.0x Critical.
+ * Enemy AI tracks & memorizes pattern: 75% tactical chance to predict & counter final finisher.
  */
 export class ProAICombatDirector {
   public playerActionHistory: PlayerCombatMove[] = [];
@@ -27,6 +32,14 @@ export class ProAICombatDirector {
   public playerIdleCombatTimer: number = 0;
   public executionerModeActive: boolean = false;
   public cognitivePressureIntensity: number = 0.0;
+
+  // Dynamic Combo Input Tracking System
+  public comboSequence: DynamicComboStep[] = [];
+  public consecutiveSameInputCount: number = 0;
+  public lastInputType: DynamicComboInputType | null = null;
+  public isFinisherExpected: boolean = false;
+  public predictedNextInput: DynamicComboInputType | null = null;
+  public lastComboInputTime: number = 0;
 
   /** Records player combat input into the rolling 5-move memory buffer */
   public recordPlayerMove(move: PlayerCombatMove) {
@@ -37,6 +50,212 @@ export class ProAICombatDirector {
     this.lastActionTimestamp = performance.now();
     this.playerIdleCombatTimer = 0; // Reset idle timer on active player offense
     this.recalculateRepetitionPenalty(move);
+  }
+
+  /**
+   * Evaluates dynamic combo input rotation vs single-button spamming.
+   * Single-mash repetition: heavily reduces damage (50% on 2nd, 20% on 3rd+).
+   * Rotating dynamic pattern (L-Click -> R-Click -> Action Key): builds 5.0x critical finisher.
+   */
+  public evaluateDynamicComboInput(
+    input: DynamicComboInputType,
+    label: string,
+    icon: string
+  ): {
+    damageMultiplier: number;
+    isMashed: boolean;
+    consecutiveMashCount: number;
+    comboStep: number;
+    isCriticalFinisher: boolean;
+    feedbackBanner: string;
+    feedbackColor: string;
+    isFinisherReady: boolean;
+  } {
+    const now = performance.now();
+    const timeSinceLast = now - this.lastComboInputTime;
+    this.lastComboInputTime = now;
+
+    // If more than 2.2 seconds elapsed, reset combo sequence
+    if (timeSinceLast > 2200) {
+      this.comboSequence = [];
+      this.isFinisherExpected = false;
+      this.consecutiveSameInputCount = 0;
+      this.lastInputType = null;
+    }
+
+    const isSameInput = this.lastInputType === input;
+    this.lastInputType = input;
+
+    // --- CASE A: SINGLE-BUTTON MASHING DETECTED ---
+    if (isSameInput) {
+      this.consecutiveSameInputCount++;
+      this.isFinisherExpected = false;
+      this.comboSequence = [{ input, label, icon, timestamp: now }];
+
+      if (this.consecutiveSameInputCount === 2) {
+        return {
+          damageMultiplier: 0.50, // 50% damage reduction
+          isMashed: true,
+          consecutiveMashCount: 2,
+          comboStep: 1,
+          isCriticalFinisher: false,
+          feedbackBanner: '⚠️ MASH DECAY! [50% DMG - ROTATE ATTACKS!]',
+          feedbackColor: '#FFAA00',
+          isFinisherReady: false,
+        };
+      } else if (this.consecutiveSameInputCount >= 3) {
+        sound.playBluntMashPenalty();
+        return {
+          damageMultiplier: 0.20, // 80% damage reduction -> INEFFECTIVE BLUNT ATTACK!
+          isMashed: true,
+          consecutiveMashCount: this.consecutiveSameInputCount,
+          comboStep: 1,
+          isCriticalFinisher: false,
+          feedbackBanner: `⚠️ INEFFECTIVE MASH x${this.consecutiveSameInputCount}! [20% DMG - PENALIZED]`,
+          feedbackColor: '#FF0055',
+          isFinisherReady: false,
+        };
+      } else {
+        return {
+          damageMultiplier: 1.0,
+          isMashed: false,
+          consecutiveMashCount: 1,
+          comboStep: 1,
+          isCriticalFinisher: false,
+          feedbackBanner: `⚡ SINGLE STRIKE [${label}]`,
+          feedbackColor: '#00FFD1',
+          isFinisherReady: false,
+        };
+      }
+    }
+
+    // --- CASE B: DYNAMIC ROTATING INPUT EXECUTED ---
+    this.consecutiveSameInputCount = 1;
+    this.comboSequence.push({ input, label, icon, timestamp: now });
+
+    // Step 1: Initiator
+    if (this.comboSequence.length === 1) {
+      this.isFinisherExpected = false;
+      return {
+        damageMultiplier: 1.15,
+        isMashed: false,
+        consecutiveMashCount: 1,
+        comboStep: 1,
+        isCriticalFinisher: false,
+        feedbackBanner: `⚔️ COMBO STEP 1/3: [${icon} ${label}]`,
+        feedbackColor: '#00FFD1',
+        isFinisherReady: false,
+      };
+    }
+
+    // Step 2: Bridge / Mix-up
+    if (this.comboSequence.length === 2) {
+      sound.playComboBridge();
+      this.isFinisherExpected = true;
+      // Enemy AI predicts what the completing 3rd input is
+      this.predictedNextInput =
+        input === 'LEFT_CLICK'
+          ? (this.comboSequence[0].input === 'RIGHT_CLICK' ? 'ACTION_KEY' : 'RIGHT_CLICK')
+          : input === 'RIGHT_CLICK'
+          ? (this.comboSequence[0].input === 'LEFT_CLICK' ? 'ACTION_KEY' : 'LEFT_CLICK')
+          : (this.comboSequence[0].input === 'LEFT_CLICK' ? 'RIGHT_CLICK' : 'LEFT_CLICK');
+
+      return {
+        damageMultiplier: 1.85,
+        isMashed: false,
+        consecutiveMashCount: 1,
+        comboStep: 2,
+        isCriticalFinisher: false,
+        feedbackBanner: `🔥 COMBO BRIDGE 2/3! [${icon} ${label}] -> EXECUTE FINISHER!`,
+        feedbackColor: '#FF00E5',
+        isFinisherReady: true,
+      };
+    }
+
+    // Step 3+: MAXIMUM CRITICAL DAMAGE FINISHER (Rotating Pattern Complete!)
+    sound.playCriticalFinisher();
+    const isCritical = true;
+    const finalBanner = `💥 MAXIMUM 5.0x CRITICAL COMBO FINISHER! [${icon} ${label}] 💥`;
+
+    // Reset sequence so a fresh dynamic combo can begin
+    this.comboSequence = [];
+    this.isFinisherExpected = false;
+    this.predictedNextInput = null;
+
+    return {
+      damageMultiplier: 5.0, // 500% Maximum Critical Damage!
+      isMashed: false,
+      consecutiveMashCount: 1,
+      comboStep: 3,
+      isCriticalFinisher: isCritical,
+      feedbackBanner: finalBanner,
+      feedbackColor: '#FFE600',
+      isFinisherReady: false,
+    };
+  }
+
+  /**
+   * Enemy AI Tactical Finisher Prediction:
+   * When the AI detects the player starting a high-damage combo sequence (Step 2 bridge active or Finisher strike),
+   * alerted enemies within combat range roll a 75% tactical chance to predict and counter.
+   */
+  public testEnemyComboPrediction(
+    bac: EnemyBacteria,
+    ent: WorldEntity,
+    playerPos: Vector2D
+  ): EnemyComboPredictionResult {
+    // Enemy cannot react if dead, inactive, in heavy stagger, surrendered, or blinded
+    if (
+      !ent.active ||
+      bac.health <= 0 ||
+      bac.hitStaggerTimer > 0 ||
+      bac.surrendered ||
+      bac.state === 'STAGGER' ||
+      bac.isCloneDecoy
+    ) {
+      return { predicted: false, defenseType: 'NONE', mitigationRatio: 0 };
+    }
+
+    // 75% Tactical Chance to predict the player's high-damage combo finisher
+    const roll = Math.random();
+    if (roll < 0.75) {
+      // 50% Tactical Evasion Dash vs 50% Protective Defensive Block
+      if (Math.random() < 0.5) {
+        // --- DEFENSE OPTION 1: PREDICTIVE EVASION DASH ---
+        bac.state = 'ADAPTIVE_EVASION_A';
+        bac.evasionTimer = 22;
+        bac.evasionDuckFrames = 22; // Invulnerable i-frames
+        const dirX = ent.position.x >= playerPos.x ? 1 : -1;
+        ent.velocity.x = dirX * 14.5;
+        ent.velocity.y = -6.5;
+        sound.playEnemyGlitchDash();
+
+        return {
+          predicted: true,
+          defenseType: 'EVASION_DASH',
+          mitigationRatio: 1.0, // 100% damage evaded
+        };
+      } else {
+        // --- DEFENSE OPTION 2: PROTECTIVE DEFENSIVE BLOCK / BARRIER ---
+        bac.state = 'ADAPTIVE_EVASION_D';
+        bac.parryWindowTimer = 24;
+        bac.parryStanceFlash = 24;
+        sound.playPredictiveBlock();
+
+        return {
+          predicted: true,
+          defenseType: 'DEFENSIVE_BLOCK',
+          mitigationRatio: 0.85, // 85% damage blocked/deflected
+        };
+      }
+    }
+
+    // 25% Vulnerability window: Prediction failed, takes full critical obliteration!
+    return {
+      predicted: false,
+      defenseType: 'NONE',
+      mitigationRatio: 0,
+    };
   }
 
   /** Analyzes recent move frequency and dynamically scales counter/parry rates */
@@ -117,6 +336,11 @@ export class ProAICombatDirector {
 
   public reset() {
     this.playerActionHistory = [];
+    this.comboSequence = [];
+    this.consecutiveSameInputCount = 0;
+    this.lastInputType = null;
+    this.isFinisherExpected = false;
+    this.predictedNextInput = null;
     this.repeatedMovePunishRate = 0.25;
     this.playerIdleCombatTimer = 0;
     this.executionerModeActive = false;
@@ -234,6 +458,65 @@ export function isPointInsideObstacle(point: Vector2D, obstacles: CyberObstacle[
 // ============================================================================
 
 /**
+ * Checks if a direct raycast segment between two points is blocked/intersected by a 3D explosion crater / pit hazard
+ */
+export function checkPitBlockingSegment(
+  from: Vector2D,
+  to: Vector2D,
+  isPitHazardAt?: (x: number, y: number) => boolean
+): boolean {
+  if (!isPitHazardAt) return false;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist <= 8) return false;
+  const steps = Math.min(25, Math.max(4, Math.floor(dist / 24)));
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const sx = from.x + dx * t;
+    const sy = from.y + dy * t;
+    if (isPitHazardAt(sx, sy)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Calculates a safe navigational detour vector around the jagged perimeter rim of an explosion crater
+ */
+export function findClearNavAngleAroundPit(
+  pos: Vector2D,
+  desiredAngle: number,
+  isPitHazardAt?: (x: number, y: number) => boolean,
+  obstacles?: CyberObstacle[]
+): number {
+  if (!isPitHazardAt) return desiredAngle;
+  const checkDists = [28, 48];
+  const testOffsets = [0, 0.5, -0.5, 1.0, -1.0, 1.57, -1.57, 2.1, -2.1, 2.7, -2.7, Math.PI];
+  for (const offset of testOffsets) {
+    const testAngle = desiredAngle + offset;
+    let isClear = true;
+    for (const cd of checkDists) {
+      const tx = pos.x + Math.cos(testAngle) * cd;
+      const ty = pos.y + Math.sin(testAngle) * cd;
+      if (isPitHazardAt(tx, ty)) {
+        isClear = false;
+        break;
+      }
+      if (obstacles && isPointInsideObstacle({ x: tx, y: ty }, obstacles)) {
+        isClear = false;
+        break;
+      }
+    }
+    if (isClear) {
+      return testAngle;
+    }
+  }
+  return desiredAngle + Math.PI / 2;
+}
+
+/**
  * Initializes director parameters for an EnemyBacteria organism if missing
  */
 export function initBacteriaAIData(bac: EnemyBacteria, ent: WorldEntity) {
@@ -249,6 +532,9 @@ export function initBacteriaAIData(bac: EnemyBacteria, ent: WorldEntity) {
   bac.losDetected = false;
   bac.stealthAlpha = bac.stealthAlpha !== undefined ? bac.stealthAlpha : (bac.variant === 'STEALTH_STALKER' || bac.variant === 'MISSION_TARGET_ELITE' ? 0.2 : 1.0);
   bac.projectileCooldown = bac.projectileCooldown || 0;
+  bac.pitAttackCooldown = bac.pitAttackCooldown || 0;
+  bac.pitNavAngle = bac.pitNavAngle || 0;
+  bac.pitBlockedPlayer = !!bac.pitBlockedPlayer;
   bac.surrenderChance = bac.surrenderChance !== undefined ? bac.surrenderChance : (bac.isBoss ? 0 : 0.35); // 35% chance for regular minions
   bac.surrendered = !!bac.surrendered;
   bac.surrenderTimer = bac.surrenderTimer || 0;
@@ -339,7 +625,8 @@ export function updateBacteriaAIDirector(
   onSpawnMinion?: (x: number, y: number, variant: EnemyBacteria['variant']) => void,
   onSpawnClones?: (bac: EnemyBacteria, ent: WorldEntity) => void,
   onFlashlightJam?: () => void,
-  onKnockbackPlayer?: (forceX: number, forceY: number) => void
+  onKnockbackPlayer?: (forceX: number, forceY: number) => void,
+  isPitHazardAt?: (worldX: number, worldY: number) => boolean
 ) {
   initBacteriaAIData(bac, ent);
 
@@ -349,6 +636,7 @@ export function updateBacteriaAIDirector(
   if (bac.counterCooldown && bac.counterCooldown > 0) bac.counterCooldown--;
   if (bac.empCooldown && bac.empCooldown > 0) bac.empCooldown--;
   if (bac.cloneFlashTimer && bac.cloneFlashTimer > 0) bac.cloneFlashTimer--;
+  if (bac.pitAttackCooldown && bac.pitAttackCooldown > 0) bac.pitAttackCooldown--;
 
   // --- 1. SURRENDER STATE HANDLING ---
   if (bac.surrendered || bac.state === 'SURRENDER') {
@@ -541,7 +829,66 @@ export function updateBacteriaAIDirector(
     }
   }
 
-  // --- 2.8 PLAYER WHIFF / RECOVERY PUNISH AUTO-COUNTER ---
+  // --- 2.8 PIT HAZARD RAYCAST & SEPARATED RANGED BIO-ATTACK DIRECTIVE ---
+  // Check if an explosion crater or pit hazard blocks the direct raycast line of sight to the player
+  const isPitBlockingPathToPlayer = isPitHazardAt ? checkPitBlockingSegment(pos, playerPos, isPitHazardAt) : false;
+  bac.pitBlockedPlayer = isPitBlockingPathToPlayer;
+
+  // If the player is within range (<= 480px) but separated by a pit hazard/crater:
+  // The enemy must STOP MOVING and fire a projectile attack (ranged bacterial splash/acid fluid)
+  // directly at the player with a 2-second (120-frame) cooldown.
+  const isPitHazardBlocking = isPitBlockingPathToPlayer && distToPlayer <= 480 && !bac.surrendered && bac.state !== 'STAGGER' && !bac.isCloneDecoy;
+  if (isPitHazardBlocking) {
+    // 1. Stop moving immediately (do not walk forward blindly into the pit)
+    ent.velocity.x *= 0.12;
+    ent.velocity.y *= 0.12;
+    bac.facingAngle = angleToPlayer;
+    bac.facing = dirX > 0 ? 'RIGHT' : 'LEFT';
+    bac.state = 'PIT_RANGED_ATTACK';
+    bac.wobbleAmount = 0.55;
+
+    // 2. Fire Ranged Bacterial Splash / Acid Fluid projectile on 2-second cooldown
+    if ((bac.pitAttackCooldown || 0) <= 0 && onSpawnProjectile) {
+      bac.pitAttackCooldown = 120; // 2 seconds (120 frames at 60 FPS)
+      bac.projectileCooldown = 120;
+
+      const projSpeed = 7.5;
+      onSpawnProjectile({
+        x: pos.x + Math.cos(angleToPlayer) * (bac.radius + 8),
+        y: pos.y + Math.sin(angleToPlayer) * (bac.radius + 8),
+        vx: Math.cos(angleToPlayer) * projSpeed,
+        vy: Math.sin(angleToPlayer) * projSpeed,
+        damage: 16,
+        color: '#39FF14',
+        isHostile: true,
+      });
+
+      sound.playToxicAcidSpit();
+    }
+  }
+
+  // --- 2.9 PIT HAZARD PERIMETER & CRATER RIM NAVIGATIONAL AVOIDANCE ---
+  // If moving forward would cause the enemy to step into a pit/crater hazard:
+  // The enemy must NOT blindly walk forward. Instead, navigate/patrol around the crater edge!
+  const moveHeading = Math.hypot(ent.velocity.x, ent.velocity.y) > 0.3
+    ? Math.atan2(ent.velocity.y, ent.velocity.x)
+    : bac.facingAngle;
+  const pitLookAheadDist = 36;
+  const isPitDirectlyAhead = isPitHazardAt
+    ? isPitHazardAt(pos.x + Math.cos(moveHeading) * pitLookAheadDist, pos.y + Math.sin(moveHeading) * pitLookAheadDist)
+    : false;
+
+  if (isPitDirectlyAhead && bac.state !== 'PIT_RANGED_ATTACK' && bac.state !== 'STAGGER' && !bac.surrendered) {
+    const clearDetourAngle = findClearNavAngleAroundPit(pos, moveHeading, isPitHazardAt, obstacles);
+    bac.pitNavAngle = clearDetourAngle;
+    bac.state = 'PIT_AVOID_NAV';
+    ent.velocity.x = Math.cos(clearDetourAngle) * 2.8;
+    ent.velocity.y = Math.sin(clearDetourAngle) * 2.8;
+    bac.facingAngle = clearDetourAngle;
+    bac.facing = Math.cos(clearDetourAngle) >= 0 ? 'RIGHT' : 'LEFT';
+  }
+
+  // --- 2.10 PLAYER WHIFF / RECOVERY PUNISH AUTO-COUNTER ---
   // If the player whiffs an attack and is in recovery frames near an alerted enemy:
   if (
     player.whiffRecoveryTimer > 0 &&
@@ -1242,6 +1589,43 @@ export function updateBacteriaAIDirector(
         }
         break;
       }
+
+      case 'PIT_RANGED_ATTACK': {
+        // --- PIT / CHASM SEPARATION RANGED BIO-ATTACK STANCE ---
+        // Enemy stops moving to avoid walking into chasm and stays locked on player
+        ent.velocity.x *= 0.15;
+        ent.velocity.y *= 0.15;
+        bac.facingAngle = Math.atan2(dy, dx);
+        bac.facing = dirX > 0 ? 'RIGHT' : 'LEFT';
+        bac.wobbleAmount = 0.45;
+
+        // If player has moved out of range or path is no longer obstructed by pit, transition back to chase
+        if (!isPitBlockingPathToPlayer || distToPlayer > 520) {
+          bac.state = 'CHASE';
+        }
+        break;
+      }
+
+      case 'PIT_AVOID_NAV': {
+        // --- PATROL & NAVIGATE AROUND CRATER RIM ---
+        bac.wobbleAmount = 0.35;
+        const navAngle = findClearNavAngleAroundPit(pos, bac.pitNavAngle || bac.facingAngle, isPitHazardAt, obstacles);
+        ent.velocity.x = Math.cos(navAngle) * 2.6;
+        ent.velocity.y = Math.sin(navAngle) * 2.6;
+        bac.facingAngle = navAngle;
+        bac.facing = Math.cos(navAngle) >= 0 ? 'RIGHT' : 'LEFT';
+
+        const stepAheadX = pos.x + Math.cos(bac.facingAngle) * 38;
+        const stepAheadY = pos.y + Math.sin(bac.facingAngle) * 38;
+        if (!isPitHazardAt || !isPitHazardAt(stepAheadX, stepAheadY)) {
+          if (bac.alertness >= 80 || hasLOS) {
+            bac.state = 'CHASE';
+          } else {
+            bac.state = 'PATROL';
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -1251,6 +1635,16 @@ export function updateBacteriaAIDirector(
 
   if (bac.state !== 'LEAP' && bac.state !== 'CHARGE_ATTACK' && bac.state !== 'GLITCH_DASH') {
     ent.velocity.y += 0.12;
+  }
+
+  // Pit Hazard Edge Clamping to prevent inertial falls into holes
+  if (isPitHazardAt) {
+    if (isPitHazardAt(ent.position.x + ent.velocity.x, ent.position.y)) {
+      ent.velocity.x = 0;
+    }
+    if (isPitHazardAt(ent.position.x, ent.position.y + ent.velocity.y)) {
+      ent.velocity.y = 0;
+    }
   }
 
   ent.position.x += ent.velocity.x;

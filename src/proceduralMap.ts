@@ -602,22 +602,46 @@ export class ProceduralMapManager {
             glowColor: isMainAvenueX && isMainAvenueY ? '#00FFD1' : undefined,
           };
         } else if (isAlleyX || isAlleyY) {
-          // Neon Alleyway
-          tiles[tx][ty] = {
-            type: 'ALLEYWAY',
-            walkable: true,
-            color: '#0e0b1c',
-            glowColor: biome === 'NEON_DISTRICT' ? '#FF00E5' : '#00FFD1',
-          };
+          // Rare & Tactical Alley Breach Check: only ~10-12% of outer alley corridors have a broken floor fissure
+          const isChunkEligible = Math.abs(Math.sin(cx * 89.17 + cy * 53.31)) > 0.87;
+          const alleyPitNoise = Math.abs(Math.sin(absTileX * 37.11 + absTileY * 83.29)) % 1;
+          const nearOrigin = isSpawnChunk && Math.abs(tx - 10) <= 7 && Math.abs(ty - 10) <= 7;
+          const nearObj = isObjectiveChunk && Math.abs(tx - 10) <= 5 && Math.abs(ty - 10) <= 5;
+          
+          if (isChunkEligible && !nearOrigin && !nearObj && !isNearObjectiveCenter && alleyPitNoise > 0.88) {
+            // Rare tactical broken floor chasm gap across alleyway!
+            tiles[tx][ty] = {
+              type: 'BROKEN_FLOOR',
+              walkable: true,
+              isPitHazard: true,
+              color: '#020008',
+              glowColor: '#ff0055',
+              elevation: -55,
+              crackSeed: alleyPitNoise,
+            };
+          } else {
+            // Normal solid clean Neon Alleyway
+            tiles[tx][ty] = {
+              type: 'ALLEYWAY',
+              walkable: true,
+              color: '#0e0b1c',
+              glowColor: biome === 'NEON_DISTRICT' ? '#FF00E5' : '#00FFD1',
+            };
+          }
         } else {
           // Building block / tech grid candidate
           const blockSeed = Math.sin(absTileX * 12.9898 + absTileY * 78.233);
           const rand = Math.abs(blockSeed * 43758.5453) % 1;
 
-          // Don't place solid obstacles at spawn origin center or objective plazas
-          const nearOrigin = isSpawnChunk && Math.abs(tx - 10) <= 3 && Math.abs(ty - 10) <= 3;
+          // Safe clearance around spawn origin center and objective plazas
+          const nearOrigin = isSpawnChunk && Math.abs(tx - 10) <= 7 && Math.abs(ty - 10) <= 7;
+          const nearObj = isObjectiveChunk && Math.abs(tx - 10) <= 5 && Math.abs(ty - 10) <= 5;
 
-          if (rand < 0.32 && !nearOrigin && !isNearObjectiveCenter) {
+          // Rare Tactical Chasm Void Breach (only ~10-12% of exploration chunks have an isolated chasm feature)
+          const isChasmChunk = Math.abs(Math.sin(cx * 131.73 + cy * 277.31)) > 0.88;
+          const isChasmCell = (absTileX % 7 === 3 && absTileY % 7 === 3);
+
+          if (rand < 0.38 && !nearOrigin && !isNearObjectiveCenter && !nearObj) {
             // Cyber Building Solid Obstacle Tile
             tiles[tx][ty] = {
               type: 'CYBER_BUILDING',
@@ -626,7 +650,18 @@ export class ProceduralMapManager {
               glowColor: biome === 'TECH_CORE' ? '#00FF66' : biome === 'NEON_DISTRICT' ? '#FF00E5' : '#00FFD1',
               elevation: 40 + rand * 35,
             };
-          } else if (rand < 0.5) {
+          } else if (isChasmChunk && isChasmCell && !nearOrigin && !isNearObjectiveCenter && !nearObj) {
+            // Rare Isolated Tactical Chasm Void Abyss (Platforming hazard requiring Hyper-Dash)
+            tiles[tx][ty] = {
+              type: 'CHASM_VOID',
+              walkable: true,
+              isPitHazard: true,
+              color: '#010006',
+              glowColor: '#00ffd1',
+              elevation: -75,
+              crackSeed: Math.abs(rand),
+            };
+          } else if (rand < 0.62) {
             // Hologram Plaza
             tiles[tx][ty] = {
               type: 'HOLOGRAM_PLAZA',
@@ -1625,5 +1660,90 @@ export class ProceduralMapManager {
       resolvedVel: { x: finalVx, y: finalVy },
       collisions,
     };
+  }
+
+  /**
+   * Retrieves the Tile descriptor at the given 2D continuous world coordinates
+   */
+  public getTileAtWorldPosition(worldX: number, worldY: number): Tile | null {
+    const cx = Math.floor(worldX / this.CHUNK_PIXEL_SIZE);
+    const cy = Math.floor(worldY / this.CHUNK_PIXEL_SIZE);
+    const chunkKey = this.getChunkKey(cx, cy);
+    const chunk = this.loadedChunks.get(chunkKey);
+    if (!chunk) return null;
+
+    const relX = worldX - chunk.worldX;
+    const relY = worldY - chunk.worldY;
+    const tx = Math.floor(relX / this.TILE_SIZE);
+    const ty = Math.floor(relY / this.TILE_SIZE);
+
+    if (tx >= 0 && tx < this.CHUNK_TILE_COUNT && ty >= 0 && ty < this.CHUNK_TILE_COUNT) {
+      return chunk.tiles[tx]?.[ty] || null;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if a continuous 2D world position lies directly inside a broken floor or chasm void hazard.
+   * Dynamically aligns trigger collision bounds with the radial circular geometry of the 3D blast crater
+   * and floor opening, applying an organic safe-ledge margin so moving along or grazing tile edges
+   * on mobile analog joysticks never triggers a false fall.
+   */
+  public isPitHazardAt(worldX: number, worldY: number): boolean {
+    const cx = Math.floor(worldX / this.CHUNK_PIXEL_SIZE);
+    const cy = Math.floor(worldY / this.CHUNK_PIXEL_SIZE);
+    const chunkKey = this.getChunkKey(cx, cy);
+    const chunk = this.loadedChunks.get(chunkKey);
+    if (!chunk) return false;
+
+    const relX = worldX - chunk.worldX;
+    const relY = worldY - chunk.worldY;
+    const tx = Math.floor(relX / this.TILE_SIZE);
+    const ty = Math.floor(relY / this.TILE_SIZE);
+
+    if (tx >= 0 && tx < this.CHUNK_TILE_COUNT && ty >= 0 && ty < this.CHUNK_TILE_COUNT) {
+      const tile = chunk.tiles[tx]?.[ty];
+      if (!tile) return false;
+      const isHazard = !!(tile.isPitHazard || tile.type === 'BROKEN_FLOOR' || tile.type === 'CHASM_VOID');
+      if (!isHazard) return false;
+
+      // Calculate center of this hazard tile
+      const tileCenterX = chunk.worldX + tx * this.TILE_SIZE + this.TILE_SIZE / 2;
+      const tileCenterY = chunk.worldY + ty * this.TILE_SIZE + this.TILE_SIZE / 2;
+
+      // The 3D crater visual opening has a radius of ~0.38 - 0.42 * TILE_SIZE.
+      // Active trigger boundary uses 0.35 * TILE_SIZE (17.5px on 50px tile) to guarantee
+      // that only stepping directly into the open crater abyss triggers a fall.
+      const dx = worldX - tileCenterX;
+      const dy = worldY - tileCenterY;
+      const distFromCenter = Math.hypot(dx, dy);
+
+      // Check if neighboring tiles are also pit hazards (forming an extended chasm fissure)
+      const hasNeighborPit = (nx: number, ny: number) => {
+        if (nx >= 0 && nx < this.CHUNK_TILE_COUNT && ny >= 0 && ny < this.CHUNK_TILE_COUNT) {
+          const nTile = chunk.tiles[nx]?.[ny];
+          return !!(nTile && (nTile.isPitHazard || nTile.type === 'BROKEN_FLOOR' || nTile.type === 'CHASM_VOID'));
+        }
+        return false;
+      };
+
+      const hasWest = hasNeighborPit(tx - 1, ty);
+      const hasEast = hasNeighborPit(tx + 1, ty);
+      const hasNorth = hasNeighborPit(tx, ty - 1);
+      const hasSouth = hasNeighborPit(tx, ty + 1);
+
+      // If isolated pit crater, check radial distance from center
+      if (!hasWest && !hasEast && !hasNorth && !hasSouth) {
+        return distFromCenter <= this.TILE_SIZE * 0.35;
+      }
+
+      // If part of a continuous fissure corridor, allow passage between connected pit cells with edge margin
+      const margin = 8; // 8px safe perimeter margin from solid asphalt edges
+      const insideX = (hasWest || dx >= -this.TILE_SIZE / 2 + margin) && (hasEast || dx <= this.TILE_SIZE / 2 - margin);
+      const insideY = (hasNorth || dy >= -this.TILE_SIZE / 2 + margin) && (hasSouth || dy <= this.TILE_SIZE / 2 - margin);
+
+      return insideX && insideY;
+    }
+    return false;
   }
 }

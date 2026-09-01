@@ -2,6 +2,7 @@ import {
   Camera2D,
   Collectible,
   CollectibleType,
+  WeaponDropModel,
   DirectionState,
   FloatingText,
   GameSettings,
@@ -59,6 +60,7 @@ import {
 } from './cyberCityRenderer';
 import { gameAssets } from './assetLoader';
 import { ThreeSceneManager } from './threeSceneManager';
+import { dailyMissionManager } from './dailyMissionSystem';
 import * as THREE from 'three';
 
 /**
@@ -230,6 +232,8 @@ export interface Projectile {
   isVortex?: boolean;
   vortexRadius?: number;
   knockback?: number;
+  isCriticalFinisher?: boolean;
+  isMashed?: boolean;
 }
 
 export interface SlashArc {
@@ -612,6 +616,9 @@ export class GameEngine {
 
     // Calculate performance grade
     const hpRatio = this.player.integrity / this.player.maxIntegrity;
+    if (hpRatio >= 0.75) {
+      dailyMissionManager.reportProgress('CYBER_SURVIVOR', 1);
+    }
     let grade: 'S' | 'A' | 'B' | 'C' = 'B';
     if (timeTakenSeconds < 90 && hpRatio > 0.75 && this.objectiveState.stageEnemiesKilled >= 4) {
       grade = 'S';
@@ -697,7 +704,11 @@ export class GameEngine {
     this.activeWeapon = type;
     sound.playWeaponSwitch();
     const info = this.weaponArsenal[type];
+    const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', `WEAPON: ${info.name.toUpperCase()}`, '🔄');
     this.addFloatingText(this.player.position.x, this.player.position.y - 40, `EQUIPPED: ${info.name.toUpperCase()}`, info.color);
+    if (comboEval.feedbackBanner) {
+      this.addFloatingText(this.player.position.x, this.player.position.y - 65, comboEval.feedbackBanner, comboEval.feedbackColor);
+    }
     this.onWeaponChange?.(info, this.weaponArsenal);
   }
 
@@ -844,6 +855,8 @@ export class GameEngine {
     this.player.shootTimer = 0;
     this.player.animTimer = 0;
     this.player.afterimages = [];
+    this.player.isFallingIntoAbyss = false;
+    this.player.fallingTimer = 0;
 
     this.camera.position = { x: 0, y: 0 };
     this.camera.lookVerticalOffset = 0;
@@ -975,6 +988,20 @@ export class GameEngine {
   public handleDash() {
     if (this.player.dashTimer > 0) return;
 
+    // Dynamic Combo Input evaluation for Action/Movement key
+    const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', 'HYPER DASH', '⚡');
+    if (comboEval.feedbackBanner) {
+      this.addFloatingText(this.player.position.x, this.player.position.y - 55, comboEval.feedbackBanner, comboEval.feedbackColor);
+    }
+    if (comboEval.isMashed) {
+      sound.playBluntMashPenalty();
+    } else if (comboEval.isCriticalFinisher) {
+      sound.playCriticalFinisher();
+      this.createPulseWave(this.player.position.x, this.player.position.y, '#FFD700');
+    } else if (comboEval.isFinisherReady) {
+      sound.playComboBridge();
+    }
+
     // Evaluate Rhythm timing with Synthwave beat
     const rhythm = this.rhythmDirector.evaluateAction();
     const isRhythmHit = rhythm.grade === 'PERFECT' || rhythm.grade === 'CRITICAL';
@@ -998,6 +1025,7 @@ export class GameEngine {
 
     // Record Dash action into AI combat memory
     proCombatAI.recordPlayerMove('DASH_EVADE');
+    dailyMissionManager.reportProgress('CHASM_ACROBAT', 1);
 
     const dashSpeed = this.player.dashSpeed * (this.player.overdriveTimer > 0 ? 1.45 : isRhythmHit ? 1.3 : 1.0);
     const angle = this.player.angle;
@@ -1033,6 +1061,23 @@ export class GameEngine {
     }
     if (this.player.slashTimer > 0) return;
 
+    // Evaluate Dynamic Combo Input System (Anti-Mash Penalty & Rotating Input Bonuses)
+    const comboEval = proCombatAI.evaluateDynamicComboInput('LEFT_CLICK', 'KATANA SLASH', '⚔️');
+    if (comboEval.feedbackBanner) {
+      this.addFloatingText(this.player.position.x, this.player.position.y - 58, comboEval.feedbackBanner, comboEval.feedbackColor);
+    }
+
+    if (comboEval.isMashed) {
+      sound.playBluntMashPenalty();
+    } else if (comboEval.isCriticalFinisher) {
+      sound.playCriticalFinisher();
+      this.createPulseWave(this.player.position.x, this.player.position.y, '#FFD700');
+      this.flashAlpha = 0.55;
+      this.flashColor = '#FFD700';
+    } else if (comboEval.isFinisherReady) {
+      sound.playComboBridge();
+    }
+
     // Evaluate Rhythm timing with Synthwave beat
     const rhythm = this.rhythmDirector.evaluateAction();
     const isRhythmHit = rhythm.grade === 'PERFECT' || rhythm.grade === 'CRITICAL' || rhythm.grade === 'GOOD';
@@ -1059,11 +1104,13 @@ export class GameEngine {
     }
 
     sound.playJump(); // energetic whoosh sound
-    this.screenShake = 6 + combo * 2 + (isRhythmHit ? 10 : 0);
+    this.screenShake = 6 + combo * 2 + (isRhythmHit ? 10 : 0) + (comboEval.isCriticalFinisher ? 12 : 0);
 
     const facing = this.player.facingDirection;
     const baseAngle = facing === 'RIGHT' ? 0 : Math.PI;
-    const slashColor = isPerfect
+    const slashColor = comboEval.isCriticalFinisher
+      ? '#FFD700'
+      : isPerfect
       ? '#00FFD1'
       : isCritical
       ? '#FF00E5'
@@ -1073,8 +1120,8 @@ export class GameEngine {
       ? '#FF00E5'
       : '#FFE600';
 
-    // Register slash arc visual effect (larger radius on rhythm hit)
-    const arcRadius = 65 + combo * 10 + (isRhythmHit ? 25 : 0);
+    // Register slash arc visual effect (larger radius on rhythm hit or finisher)
+    const arcRadius = 65 + combo * 10 + (isRhythmHit ? 25 : 0) + (comboEval.isCriticalFinisher ? 35 : 0);
     this.slashArcs.push({
       position: { x: this.player.position.x, y: this.player.position.y },
       angle: baseAngle,
@@ -1130,13 +1177,14 @@ export class GameEngine {
     }
 
     // Check melee hit against Mutated Bacteria & Terminals
-    const hitRadius = isRhythmHit ? 105 : 75;
+    const hitRadius = (isRhythmHit ? 105 : 75) + (comboEval.isCriticalFinisher ? 30 : 0);
     const hitCenter = {
       x: this.player.position.x + (facing === 'RIGHT' ? 45 : -45),
       y: this.player.position.y,
     };
 
-    const baseDamage = 45 * rhythm.damageMultiplier;
+    // Calculate final damage incorporating mash reduction / dynamic combo bonus
+    let baseDamage = 45 * rhythm.damageMultiplier * comboEval.damageMultiplier;
     let hitAnyTarget = false;
 
     for (const ent of this.proceduralMap.activeTerminals) {
@@ -1190,6 +1238,43 @@ export class GameEngine {
             continue;
           }
 
+          // --- COUNTER MECHANIC 4: ADVANCED 75% TACTICAL AI COMBO PREDICTION ---
+          if (comboEval.isCriticalFinisher || comboEval.isFinisherReady) {
+            const prediction = proCombatAI.testEnemyComboPrediction(bac, ent, this.player.position);
+            if (prediction.predicted) {
+              if (prediction.defenseType === 'EVASION_DASH') {
+                sound.playDash();
+                this.createDashSparks(ent.position.x, ent.position.y, Math.atan2(ent.velocity.y, ent.velocity.x));
+                this.addFloatingText(
+                  ent.position.x,
+                  ent.position.y - 38,
+                  '💨 75% AI PREDICTED FINISHER! [EVASION DASH]',
+                  '#00FFD1'
+                );
+                hitAnyTarget = true;
+                continue; // 100% avoided
+              } else if (prediction.defenseType === 'DEFENSIVE_BLOCK') {
+                sound.playPredictiveBlock();
+                this.createPulseWave(ent.position.x, ent.position.y, '#FFD700');
+                this.addFloatingText(
+                  ent.position.x,
+                  ent.position.y - 38,
+                  '🛡️ 75% AI PREDICTED COMBO! [BLOCK -85% DMG]',
+                  '#FFD700'
+                );
+                // 85% damage deflected by defensive barrier
+                const deflectedDmg = Math.max(1, baseDamage * 0.15);
+                bac.health = Math.max(0, bac.health - deflectedDmg);
+                bac.hitStaggerTimer = 12;
+                hitAnyTarget = true;
+                if (bac.health <= 0) {
+                  this.handleEnemyDefeat(ent, bac, baseAngle);
+                }
+                continue;
+              }
+            }
+          }
+
           hitAnyTarget = true;
 
           // If Rhythm strike is PERFECT or CRITICAL -> Instant Burst Destruction!
@@ -1204,19 +1289,29 @@ export class GameEngine {
           sound.playHit();
 
           // Screen-impact freezing (30-50ms) + Directional Screenshake
-          this.triggerHitstop(isRhythmHit ? 55 : 35 + combo * 6);
-          this.applyDirectionalScreenShake((isRhythmHit ? 26 : 14) + combo * 4, baseAngle);
+          this.triggerHitstop(isRhythmHit || comboEval.isCriticalFinisher ? 55 : 35 + combo * 6);
+          this.applyDirectionalScreenShake((isRhythmHit ? 26 : 14) + combo * 4 + (comboEval.isCriticalFinisher ? 15 : 0), baseAngle);
 
           // Spawn visceral fluid splatter burst adhering to nearby platforms
           this.flyingSplatters.push(
             ...spawnSplatterBurst(ent.position.x, ent.position.y, '#39ff14', '#ffffff', isRhythmHit ? 22 : 14, baseAngle, 9.5)
           );
 
-          this.createExplosion(ent.position.x, ent.position.y, '#39ff14', isRhythmHit ? 24 : 16);
+          this.createExplosion(ent.position.x, ent.position.y, comboEval.isCriticalFinisher ? '#FFD700' : '#39ff14', isRhythmHit ? 24 : 16);
+          
+          let hitBanner = `-${Math.round(baseDamage)} HP [SLASH x${combo}]`;
+          if (comboEval.isCriticalFinisher) {
+            hitBanner = `💥 CRITICAL FINISHER! [${Math.round(baseDamage)} DMG]`;
+          } else if (comboEval.isMashed) {
+            hitBanner = `⚠️ MASH REDUCED! [${Math.round(baseDamage)} DMG]`;
+          } else if (isRhythmHit) {
+            hitBanner = `CRITICAL OBLITERATION! [${Math.round(baseDamage)} DMG]`;
+          }
+
           this.addFloatingText(
             ent.position.x,
             ent.position.y - 25,
-            isRhythmHit ? `CRITICAL OBLITERATION! [${Math.round(baseDamage)} DMG]` : `-${Math.round(baseDamage)} HP [SLASH x${combo}]`,
+            hitBanner,
             slashColor
           );
 
@@ -1224,7 +1319,7 @@ export class GameEngine {
             ent.active = false;
             // 3x Combo Score for Rhythm Kills
             const killScoreMultiplier = isRhythmHit ? this.comboMultiplier * 3 : this.comboMultiplier;
-            this.score += 450 * killScoreMultiplier;
+            this.score += 450 * killScoreMultiplier * (comboEval.isCriticalFinisher ? 2 : 1);
             this.comboCount += isRhythmHit ? 6 : 2;
             this.comboMultiplier = Math.min(12, 1 + Math.floor(this.comboCount / 3));
             this.comboTimer = 300;
@@ -1250,8 +1345,8 @@ export class GameEngine {
             this.addFloatingText(
               ent.position.x,
               ent.position.y - 35,
-              isRhythmHit ? '+1350 BIO-CORE INSTA-BURST!' : '+350 BIO-CORE DESTROYED',
-              '#39ff14'
+              comboEval.isCriticalFinisher ? '+2500 DYNAMIC COMBO KILL!' : isRhythmHit ? '+1350 BIO-CORE INSTA-BURST!' : '+350 BIO-CORE DESTROYED',
+              comboEval.isCriticalFinisher ? '#FFD700' : '#39ff14'
             );
 
             // Drop visceral blood plasma cell or shiny metallic gold
@@ -1281,6 +1376,21 @@ export class GameEngine {
       return;
     }
 
+    // Evaluate Dynamic Combo Input System (Anti-Mash Penalty & Rotating Input Bonuses)
+    const comboEval = proCombatAI.evaluateDynamicComboInput('RIGHT_CLICK', 'PLASMA SHOOT', '🔫');
+    if (comboEval.feedbackBanner) {
+      this.addFloatingText(this.player.position.x, this.player.position.y - 58, comboEval.feedbackBanner, comboEval.feedbackColor);
+    }
+
+    if (comboEval.isMashed) {
+      sound.playBluntMashPenalty();
+    } else if (comboEval.isCriticalFinisher) {
+      sound.playCriticalFinisher();
+      this.createPulseWave(this.player.position.x, this.player.position.y, '#FFD700');
+    } else if (comboEval.isFinisherReady) {
+      sound.playComboBridge();
+    }
+
     if (this.player.overdriveTimer <= 0) {
       this.player.energy = Math.max(0, this.player.energy - energyCost);
     }
@@ -1306,6 +1416,8 @@ export class GameEngine {
     const spawnX = this.player.position.x + (facing === 'RIGHT' ? 28 : -28);
     const spawnY = this.player.position.y - 4;
 
+    const finalDamage = Math.round(currentWeapon.damage * comboEval.damageMultiplier);
+
     // --- 1. CYBER PLASMA BLASTER ---
     if (this.activeWeapon === 'PLASMA_BLASTER') {
       sound.playLaserFire();
@@ -1317,15 +1429,17 @@ export class GameEngine {
           x: Math.cos(shootAngle) * boltSpeed,
           y: Math.sin(shootAngle) * boltSpeed,
         },
-        radius: 6,
-        color: this.player.overdriveTimer > 0 ? '#FF00E5' : '#00FFD1',
-        damage: currentWeapon.damage,
+        radius: comboEval.isCriticalFinisher ? 10 : 6,
+        color: comboEval.isCriticalFinisher ? '#FFD700' : this.player.overdriveTimer > 0 ? '#FF00E5' : '#00FFD1',
+        damage: finalDamage,
         life: 50,
         maxLife: 50,
         trail: [],
         weaponType: 'PLASMA_BLASTER',
+        isCriticalFinisher: comboEval.isCriticalFinisher,
+        isMashed: comboEval.isMashed,
       });
-      this.screenShake = Math.max(this.screenShake, 4);
+      this.screenShake = Math.max(this.screenShake, comboEval.isCriticalFinisher ? 10 : 4);
     }
 
     // --- 2. TRI-SPREAD SCATTER CANNON ---
@@ -1343,14 +1457,16 @@ export class GameEngine {
             x: Math.cos(pAngle) * speed,
             y: Math.sin(pAngle) * speed,
           },
-          radius: 5,
-          color: '#FF0055',
-          damage: currentWeapon.damage,
+          radius: comboEval.isCriticalFinisher ? 8 : 5,
+          color: comboEval.isCriticalFinisher ? '#FFD700' : '#FF0055',
+          damage: finalDamage,
           life: 35,
           maxLife: 35,
           trail: [],
           weaponType: 'SPREAD_CANNON',
           knockback: 14,
+          isCriticalFinisher: comboEval.isCriticalFinisher,
+          isMashed: comboEval.isMashed,
         });
       }
       this.screenShake = Math.max(this.screenShake, 12);
@@ -1385,14 +1501,14 @@ export class GameEngine {
       if (chainTargets.length > 0) {
         for (const ent of chainTargets) {
           const bac = ent.bacteriaData!;
-          bac.health = Math.max(0, bac.health - currentWeapon.damage);
+          bac.health = Math.max(0, bac.health - finalDamage);
           bac.hitStaggerTimer = 18;
           bac.state = 'STAGGER';
           checkEnemySurrender(bac);
 
           // Electric arc particles along line
           this.createElectricChainParticles(lastPoint.x, lastPoint.y, ent.position.x, ent.position.y, '#00FF66');
-          this.addFloatingText(ent.position.x, ent.position.y - 25, `⚡ -${currentWeapon.damage} [TESLA ARC]`, '#00FF66');
+          this.addFloatingText(ent.position.x, ent.position.y - 25, `⚡ -${finalDamage} [TESLA ARC]`, '#00FF66');
           this.createExplosion(ent.position.x, ent.position.y, '#00FF66', 18);
 
           if (bac.health <= 0) {
@@ -1412,11 +1528,13 @@ export class GameEngine {
           },
           radius: 7,
           color: '#00FF66',
-          damage: currentWeapon.damage,
+          damage: finalDamage,
           life: 40,
           maxLife: 40,
           trail: [],
           weaponType: 'LIGHTNING_CHAIN',
+          isCriticalFinisher: comboEval.isCriticalFinisher,
+          isMashed: comboEval.isMashed,
         });
       }
     }
@@ -1435,13 +1553,15 @@ export class GameEngine {
             y: Math.sin(mAngle) * 14,
           },
           radius: 7,
-          color: '#FF00E5',
-          damage: currentWeapon.damage,
+          color: comboEval.isCriticalFinisher ? '#FFD700' : '#FF00E5',
+          damage: finalDamage,
           life: 75,
           maxLife: 75,
           trail: [],
           weaponType: 'HOMING_MISSILES',
           isHoming: true,
+          isCriticalFinisher: comboEval.isCriticalFinisher,
+          isMashed: comboEval.isMashed,
         });
       }
       this.screenShake = Math.max(this.screenShake, 8);
@@ -1460,13 +1580,15 @@ export class GameEngine {
         },
         radius: 15,
         color: '#9D00FF',
-        damage: currentWeapon.damage,
+        damage: finalDamage,
         life: 80,
         maxLife: 80,
         trail: [],
         weaponType: 'QUANTUM_VORTEX',
         isVortex: true,
         vortexRadius: 180,
+        isCriticalFinisher: comboEval.isCriticalFinisher,
+        isMashed: comboEval.isMashed,
       });
       this.screenShake = Math.max(this.screenShake, 16);
       this.flashAlpha = 0.3;
@@ -1502,6 +1624,19 @@ export class GameEngine {
 
   /** Data Terminal Breach & Enemy Surrender Mercy Action */
   public handleHack() {
+    const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', 'CYBER HACK', '💻');
+    if (comboEval.feedbackBanner) {
+      this.addFloatingText(this.player.position.x, this.player.position.y - 55, comboEval.feedbackBanner, comboEval.feedbackColor);
+    }
+    if (comboEval.isMashed) {
+      sound.playBluntMashPenalty();
+    } else if (comboEval.isCriticalFinisher) {
+      sound.playCriticalFinisher();
+      this.createPulseWave(this.player.position.x, this.player.position.y, '#FFD700');
+    } else if (comboEval.isFinisherReady) {
+      sound.playComboBridge();
+    }
+
     const terminals = this.proceduralMap.activeTerminals;
     let interacted = false;
 
@@ -1891,6 +2026,25 @@ export class GameEngine {
       this.createDashSparks(this.player.position.x, this.player.position.y, this.player.angle);
     }
 
+    // 3.5 Check Broken Floor / Pit Abyss Falling Hazard
+    if (!this.player.isFallingIntoAbyss) {
+      const isOverPit = this.proceduralMap.isPitHazardAt(this.player.position.x, this.player.position.y);
+      // Hero safely phases/jumps across the chasm when dashing, executing takedowns, or in evasive maneuvers
+      const isAirborneOrPhasing =
+        this.player.dashTimer > 0 ||
+        this.player.actionState === 'STEALTH_TAKEDOWN' ||
+        this.player.actionState === 'SLASHING' ||
+        this.player.actionState === 'SLIDING' ||
+        this.player.actionState === 'JUMPING' ||
+        (this.player.invulnerableTimer !== undefined && this.player.invulnerableTimer > 0);
+
+      if (isOverPit && !isAirborneOrPhasing) {
+        this.triggerPlayerFallIntoVoid();
+      }
+    } else {
+      this.updatePlayerVoidFalling();
+    }
+
     // 4. Update Pulsing Cyber Laser Hazards
     const playerBoundingBox: BoundingBox = {
       x: this.player.position.x - this.player.width / 2,
@@ -1913,6 +2067,7 @@ export class GameEngine {
     const frameDist = Math.hypot(this.player.velocity.x, this.player.velocity.y);
     this.distance += frameDist * 0.05;
     this.score += frameDist * 0.1 * this.comboMultiplier;
+    dailyMissionManager.reportProgress('CHRONO_SPRINT', Math.floor(this.distance), true);
 
     // Combo timer decay
     if (this.comboTimer > 0) {
@@ -2123,6 +2278,7 @@ export class GameEngine {
     // Track stage kills & persistent total
     this.objectiveState.stageEnemiesKilled += 1;
     this.persistentProgression.totalEnemiesKilled += 1;
+    dailyMissionManager.reportProgress('ENEMY_PURGE', 1);
 
     if (isBoss) {
       this.score += 5000 * this.comboMultiplier;
@@ -2347,7 +2503,8 @@ export class GameEngine {
           this.triggerHitstop(35);
           sound.playPlayerHurt();
           this.addFloatingText(this.player.position.x, this.player.position.y - 25, '⚡ DIRECT CHARGE KNOCKBACK!', '#FF0055');
-        }
+        },
+        (wx, wy) => this.proceduralMap.isPitHazardAt(wx, wy)
       );
 
       // Hyper-Dash and Overdrive Crushing Impact against Bacteria
@@ -2512,8 +2669,38 @@ export class GameEngine {
           if (!ent.active || ent.type !== 'MUTATED_BACTERIA' || !ent.bacteriaData) continue;
           const d = Math.hypot(ent.position.x - bolt.position.x, ent.position.y - bolt.position.y);
           if (d < ent.radius + bolt.radius) {
-            hit = true;
             const bac = ent.bacteriaData;
+
+            // Check 75% tactical combo prediction on critical finishers
+            if (bolt.isCriticalFinisher) {
+              const prediction = proCombatAI.testEnemyComboPrediction(bac, ent, this.player.position);
+              if (prediction.predicted) {
+                if (prediction.defenseType === 'EVASION_DASH') {
+                  sound.playDash();
+                  this.createDashSparks(ent.position.x, ent.position.y, Math.atan2(ent.velocity.y, ent.velocity.x));
+                  this.addFloatingText(
+                    ent.position.x,
+                    ent.position.y - 38,
+                    '💨 75% AI PREDICTED FINISHER! [EVASION DASH]',
+                    '#00FFD1'
+                  );
+                  hit = true;
+                  break; // Completely evaded
+                } else if (prediction.defenseType === 'DEFENSIVE_BLOCK') {
+                  sound.playPredictiveBlock();
+                  this.createPulseWave(ent.position.x, ent.position.y, '#FFD700');
+                  this.addFloatingText(
+                    ent.position.x,
+                    ent.position.y - 38,
+                    '🛡️ 75% AI PREDICTED COMBO! [DEFLECT -85%]',
+                    '#FFD700'
+                  );
+                  bolt.damage = Math.max(1, Math.round(bolt.damage * 0.15));
+                }
+              }
+            }
+
+            hit = true;
             bac.health = Math.max(0, bac.health - bolt.damage);
             bac.hitStaggerTimer = 16;
             bac.state = 'STAGGER';
@@ -2523,16 +2710,21 @@ export class GameEngine {
             const boltAngle = Math.atan2(bolt.velocity.y, bolt.velocity.x);
 
             // Screen-impact freezing (30-50ms) + Directional Screenshake
-            this.triggerHitstop(35);
-            this.applyDirectionalScreenShake(14, boltAngle);
+            this.triggerHitstop(bolt.isCriticalFinisher ? 50 : 35);
+            this.applyDirectionalScreenShake(bolt.isCriticalFinisher ? 22 : 14, boltAngle);
 
             // Fluid splatter burst on projectile impact
             this.flyingSplatters.push(
-              ...spawnSplatterBurst(bolt.position.x, bolt.position.y, '#39ff14', '#ffffff', 10, boltAngle, 7.0)
+              ...spawnSplatterBurst(bolt.position.x, bolt.position.y, '#39ff14', '#ffffff', bolt.isCriticalFinisher ? 18 : 10, boltAngle, 7.0)
             );
 
-            this.createExplosion(bolt.position.x, bolt.position.y, bolt.color, 14);
-            this.addFloatingText(ent.position.x, ent.position.y - 20, `-${bolt.damage}`, bolt.color);
+            this.createExplosion(bolt.position.x, bolt.position.y, bolt.color, bolt.isCriticalFinisher ? 22 : 14);
+            this.addFloatingText(
+              ent.position.x,
+              ent.position.y - 20,
+              bolt.isCriticalFinisher ? `💥 CRIT FINISHER! -${bolt.damage}` : bolt.isMashed ? `⚠️ MASH REDUCED -${bolt.damage}` : `-${bolt.damage}`,
+              bolt.color
+            );
 
             if (bac.health <= 0) {
               this.handleEnemyDefeat(ent, bac, boltAngle);
@@ -2565,12 +2757,13 @@ export class GameEngine {
 
   // --- ITEM SPAWNING & DROPS ---
 
-  public spawnDrop(x: number, y: number, type: CollectibleType) {
+  public spawnDrop(x: number, y: number, type: CollectibleType, weaponDropType?: WeaponDropModel) {
     let glow = '#ffd700';
     let pts = 200;
     let heal = 0;
     let stack = 1;
     let radius = 15;
+    let chosenWeaponType = weaponDropType;
 
     if (type === 'METALLIC_GOLD') {
       glow = '#ffd700';
@@ -2582,19 +2775,24 @@ export class GameEngine {
       stack = 5;
       radius = 18;
     } else if (type === 'BLOOD_PLASMA_CELL') {
-      glow = '#ff0033';
+      glow = '#00ff66';
       pts = 250;
       heal = 25;
-      radius = 16;
-    } else if (type === 'WEAPON_TECH_PART') {
-      glow = '#FF00E5';
-      pts = 1000;
       radius = 18;
+    } else if (type === 'WEAPON_TECH_PART' || type === 'EXOTIC_WEAPON_DROP') {
+      glow = '#00ffd1';
+      pts = 1000;
+      radius = 20;
+      if (!chosenWeaponType) {
+        const weaponPool: WeaponDropModel[] = ['KATANA', 'PLASMA_BLASTER', 'LIGHTNING_CHAIN', 'SPREAD_CANNON', 'HOMING_MISSILES', 'QUANTUM_VORTEX'];
+        chosenWeaponType = weaponPool[Math.floor(Math.random() * weaponPool.length)];
+      }
     }
 
     this.proceduralMap.activeCollectibles.push({
       id: ++this.entityIdCounter,
       type,
+      weaponDropType: chosenWeaponType,
       position: { x, y },
       radius,
       collected: false,
@@ -2637,11 +2835,13 @@ export class GameEngine {
         if (this.comboCount > this.maxComboInRun) {
           this.maxComboInRun = this.comboCount;
         }
+        dailyMissionManager.reportProgress('COMBO_OVERDRIVE', this.comboCount, true);
 
         // Apply Specialized Item Effects & Audio
         if (item.type === 'ENCRYPTED_BIO_CORE') {
           this.objectiveState.collectedBioCores += 1;
           this.persistentProgression.totalCoresExtracted += 1;
+          dailyMissionManager.reportProgress('BIO_CORE_HARVEST', 1);
           sound.playBioCoreCollect();
           this.addFloatingText(
             item.position.x,
@@ -2785,6 +2985,76 @@ export class GameEngine {
     this.addFloatingText(this.player.position.x, this.player.position.y - 30, `-${amount}% INTEGRITY`, '#FF0055');
 
     if (this.player.integrity <= 0) {
+      this.triggerGameOver();
+    }
+  }
+
+  /** Triggered when the hero steps on a broken floor / chasm void without dashing */
+  public triggerPlayerFallIntoVoid() {
+    if (this.player.isFallingIntoAbyss || this.state !== 'PLAYING') return;
+    this.player.isFallingIntoAbyss = true;
+    this.player.fallingTimer = 40;
+    this.player.actionState = 'FALLING_INTO_VOID';
+    this.player.velocity.x *= 0.1;
+    this.player.velocity.y *= 0.1;
+
+    sound.playPitFall();
+    this.triggerHitstop(20);
+    this.applyDirectionalScreenShake(28, Math.PI / 2);
+    this.flashAlpha = 0.8;
+    this.flashColor = '#FF0055';
+
+    // Spawn falling void sparks and abyss debris
+    for (let i = 0; i < 30; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = 2 + Math.random() * 6;
+      this.particles.push({
+        position: { x: this.player.position.x, y: this.player.position.y },
+        velocity: { x: Math.cos(angle) * spd, y: Math.sin(angle) * spd },
+        size: 3 + Math.random() * 4,
+        color: Math.random() < 0.5 ? '#FF0055' : '#00FFD1',
+        alpha: 1.0,
+        decay: 0.04,
+        shape: 'spark',
+      });
+    }
+
+    this.addFloatingText(
+      this.player.position.x,
+      this.player.position.y - 45,
+      '⚠️ FELL INTO BOTTOMLESS CHASM!',
+      '#FF0055'
+    );
+  }
+
+  /** Update void falling descent animation & trigger game over / restart */
+  private updatePlayerVoidFalling() {
+    if (!this.player.fallingTimer) this.player.fallingTimer = 0;
+    this.player.fallingTimer--;
+
+    // Spin and slow down in 2D / 3D
+    this.player.angle += 0.35;
+    this.player.velocity.x *= 0.8;
+    this.player.velocity.y *= 0.8;
+
+    // Emit void particles
+    if (Math.random() < 0.6) {
+      this.particles.push({
+        position: {
+          x: this.player.position.x + (Math.random() - 0.5) * 20,
+          y: this.player.position.y + (Math.random() - 0.5) * 20,
+        },
+        velocity: { x: 0, y: 0 },
+        size: 2 + Math.random() * 4,
+        color: '#FF0055',
+        alpha: 0.9,
+        decay: 0.08,
+        shape: 'circle',
+      });
+    }
+
+    if (this.player.fallingTimer <= 0) {
+      this.player.integrity = 0;
       this.triggerGameOver();
     }
   }
@@ -2937,7 +3207,8 @@ export class GameEngine {
         this.screenShake,
         this.screenShakeAngle,
         this.flashAlpha,
-        this.flashColor
+        this.flashColor,
+        this.proceduralMap.activeChunks
       );
     } catch (err) {
       console.error('3D WebGL render pipeline error:', err);
@@ -3042,29 +3313,118 @@ export class GameEngine {
           const px = wx + x * tileSize;
           const py = wy + y * tileSize;
 
-          ctx.fillStyle = tile.color;
-          ctx.fillRect(px, py, tileSize, tileSize);
+          if (tile.type === 'CHASM_VOID' || tile.type === 'BROKEN_FLOOR' || tile.isPitHazard) {
+            const isBroken = tile.type === 'BROKEN_FLOOR';
+            const cx = px + tileSize / 2;
+            const cy = py + tileSize / 2;
+            const seed = Math.abs(Math.sin(chunk.chunkX * 127.1 + chunk.chunkY * 311.7 + x * 269.5 + y * 183.3));
 
-          if (tile.type === 'ASPHALT_ROAD') {
-            ctx.strokeStyle = 'rgba(0, 255, 209, 0.08)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(px, py, tileSize, tileSize);
+            // 1. Under-Floor Asphalt Base
+            ctx.fillStyle = tile.color || '#0a0a12';
+            ctx.fillRect(px, py, tileSize, tileSize);
 
-            if (tile.glowColor) {
-              ctx.fillStyle = tile.glowColor;
-              ctx.shadowColor = tile.glowColor;
-              ctx.shadowBlur = 6;
-              ctx.fillRect(px + tileSize / 2 - 2, py + tileSize / 2 - 2, 4, 4);
-              ctx.shadowBlur = 0;
+            // 2. Explosion Blast Scorch Halo (Singed dark carbon spreading outward)
+            const scorchGrad = ctx.createRadialGradient(cx, cy, tileSize * 0.2, cx, cy, tileSize * 0.75);
+            scorchGrad.addColorStop(0, 'rgba(4, 2, 6, 0.95)');
+            scorchGrad.addColorStop(0.4, 'rgba(12, 6, 14, 0.85)');
+            scorchGrad.addColorStop(0.7, 'rgba(25, 12, 16, 0.45)');
+            scorchGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = scorchGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, tileSize * 0.75, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. Radial Blast Fracture Crack Lines Spreading Outward
+            ctx.strokeStyle = '#020104';
+            ctx.lineWidth = 1.8;
+            for (let c = 0; c < 6; c++) {
+              const cAngle = (c / 6) * Math.PI * 2 + seed * 3.5;
+              const rStart = tileSize * 0.35;
+              const rEnd = tileSize * (0.65 + ((c + seed) % 0.2));
+              ctx.beginPath();
+              ctx.moveTo(cx + Math.cos(cAngle) * rStart, cy + Math.sin(cAngle) * rStart);
+              ctx.lineTo(
+                cx + Math.cos(cAngle + 0.15) * ((rStart + rEnd) / 2),
+                cy + Math.sin(cAngle + 0.15) * ((rStart + rEnd) / 2)
+              );
+              ctx.lineTo(cx + Math.cos(cAngle) * rEnd, cy + Math.sin(cAngle) * rEnd);
+              ctx.stroke();
             }
-          } else if (tile.type === 'HOLOGRAM_PLAZA') {
-            ctx.strokeStyle = 'rgba(157, 0, 255, 0.25)';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(px + 4, py + 4, tileSize - 8, tileSize - 8);
-          } else if (tile.type === 'NEON_SIDEWALK') {
-            ctx.strokeStyle = 'rgba(255, 0, 229, 0.08)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(px, py, tileSize, tileSize);
+
+            // Glowing Thermal Ember Micro-Veins
+            ctx.strokeStyle = isBroken ? 'rgba(255, 60, 0, 0.65)' : 'rgba(0, 255, 209, 0.55)';
+            ctx.lineWidth = 1.2;
+            for (let e = 0; e < 3; e++) {
+              const eAngle = e * 2.1 + seed * 2;
+              ctx.beginPath();
+              ctx.moveTo(cx + Math.cos(eAngle) * (tileSize * 0.36), cy + Math.sin(eAngle) * (tileSize * 0.36));
+              ctx.lineTo(cx + Math.cos(eAngle) * (tileSize * 0.52), cy + Math.sin(eAngle) * (tileSize * 0.52));
+              ctx.stroke();
+            }
+
+            // 4. Circular / Oval Blown-Out Impact Crater Center
+            const numPts = 8;
+            const pts: [number, number][] = [];
+            const rBase = tileSize * 0.4;
+
+            for (let i = 0; i < numPts; i++) {
+              const theta = (i / numPts) * Math.PI * 2;
+              const rNoise = Math.sin(theta * 3 + seed * 10) * (tileSize * 0.06) +
+                             Math.cos(theta * 4 + seed * 20) * (tileSize * 0.03);
+              const r = Math.max(tileSize * 0.3, Math.min(tileSize * 0.46, rBase + rNoise));
+              pts.push([cx + Math.cos(theta) * r, cy + Math.sin(theta) * r]);
+            }
+
+            // Deep Abyss Void Gradient
+            const cavityGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, tileSize * 0.44);
+            cavityGrad.addColorStop(0, '#000000');
+            cavityGrad.addColorStop(0.75, '#040208');
+            cavityGrad.addColorStop(1, isBroken ? 'rgba(32, 10, 16, 0.95)' : 'rgba(8, 16, 26, 0.95)');
+
+            ctx.fillStyle = cavityGrad;
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let i = 1; i < numPts; i++) {
+              ctx.lineTo(pts[i][0], pts[i][1]);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Charred Crater Rim
+            ctx.strokeStyle = isBroken ? 'rgba(255, 60, 0, 0.5)' : 'rgba(0, 255, 209, 0.45)';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // 5. Tilted Concrete Slab & Rubble Chunks
+            ctx.fillStyle = '#1e1828';
+            ctx.fillRect(cx - tileSize * 0.32, cy - tileSize * 0.28, 4, 3);
+            ctx.fillRect(cx + tileSize * 0.26, cy + tileSize * 0.22, 3, 3);
+            ctx.fillRect(cx - tileSize * 0.15, cy + tileSize * 0.34, 3, 2);
+          } else {
+            ctx.fillStyle = tile.color;
+            ctx.fillRect(px, py, tileSize, tileSize);
+
+            if (tile.type === 'ASPHALT_ROAD') {
+              ctx.strokeStyle = 'rgba(0, 255, 209, 0.08)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(px, py, tileSize, tileSize);
+
+              if (tile.glowColor) {
+                ctx.fillStyle = tile.glowColor;
+                ctx.shadowColor = tile.glowColor;
+                ctx.shadowBlur = 6;
+                ctx.fillRect(px + tileSize / 2 - 2, py + tileSize / 2 - 2, 4, 4);
+                ctx.shadowBlur = 0;
+              }
+            } else if (tile.type === 'HOLOGRAM_PLAZA') {
+              ctx.strokeStyle = 'rgba(157, 0, 255, 0.25)';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 4, py + 4, tileSize - 8, tileSize - 8);
+            } else if (tile.type === 'NEON_SIDEWALK') {
+              ctx.strokeStyle = 'rgba(255, 0, 229, 0.08)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(px, py, tileSize, tileSize);
+            }
           }
         }
       }
@@ -4246,7 +4606,12 @@ export class GameEngine {
   public toggleCrouch(forceState?: boolean): boolean {
     this.player.isCrouching = forceState !== undefined ? forceState : !this.player.isCrouching;
     if (this.player.isCrouching) {
+      sound.playSlide();
+      const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', 'TACTICAL CROUCH', '🛡️');
       this.addFloatingText(this.player.position.x, this.player.position.y - 25, 'CROUCH // SILENT MODE', '#00FFD1');
+      if (comboEval.feedbackBanner) {
+        this.addFloatingText(this.player.position.x, this.player.position.y - 58, comboEval.feedbackBanner, comboEval.feedbackColor);
+      }
     }
     return this.player.isCrouching;
   }
@@ -4254,7 +4619,12 @@ export class GameEngine {
   public toggleCover(forceState?: boolean): boolean {
     this.player.isCovered = forceState !== undefined ? forceState : !this.player.isCovered;
     if (this.player.isCovered) {
+      sound.playPowerup();
+      const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', 'WALL COVER', '🧱');
       this.addFloatingText(this.player.position.x, this.player.position.y - 25, 'TAKEDOWN STANCE // IN COVER', '#0055FF');
+      if (comboEval.feedbackBanner) {
+        this.addFloatingText(this.player.position.x, this.player.position.y - 58, comboEval.feedbackBanner, comboEval.feedbackColor);
+      }
     }
     return this.player.isCovered;
   }
@@ -4301,6 +4671,12 @@ export class GameEngine {
         '#00FFD1'
       );
 
+      const comboEval = proCombatAI.evaluateDynamicComboInput('ACTION_KEY', 'STEALTH ASSASSIN', '🎯');
+      if (comboEval.feedbackBanner) {
+        this.addFloatingText(this.player.position.x, this.player.position.y - 58, comboEval.feedbackBanner, comboEval.feedbackColor);
+      }
+
+      dailyMissionManager.reportProgress('STEALTH_ASSASSIN', 1);
       this.handleEnemyDefeat(ent, bac, this.player.angle);
       return true;
     }

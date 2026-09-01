@@ -18,7 +18,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       id="settings-modal-overlay"
       className="absolute inset-0 bg-[#050505]/90 backdrop-blur-md flex flex-col items-center justify-center p-4 z-50 text-center select-none"
     >
-      <div className="w-full max-w-md border-2 border-[#00FFD1] bg-[#0A0A0A]/95 p-6 sm:p-8 relative flex flex-col shadow-[0_0_50px_rgba(0,255,209,0.2)] font-mono-tech">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none border-2 border-[#00FFD1] bg-[#0A0A0A]/95 p-5 sm:p-8 relative flex flex-col shadow-[0_0_50px_rgba(0,255,209,0.2)] font-mono-tech">
         {/* Decorative Skewed Cyber Accents */}
         <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#FF00E5] shadow-[0_0_12px_#FF00E5] transform skew-x-12"></div>
         <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-[#00FFD1] shadow-[0_0_12px_#00FFD1] transform -skew-x-12"></div>

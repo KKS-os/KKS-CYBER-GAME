@@ -11,6 +11,8 @@ import {
   WorldEntity,
   EnemyBacteria,
   Collectible,
+  CollectibleType,
+  WeaponDropModel,
   LaserHazard,
   CyberObstacle,
   AlleywayDecor,
@@ -23,6 +25,7 @@ import {
   GameSettings,
   SpeedrunDeltaInfo,
   RhythmBeatState,
+  GridMapChunk,
 } from './types';
 
 // ============================================================================
@@ -126,6 +129,8 @@ export class ThreeSceneManager {
   private carbonFiberTex: THREE.CanvasTexture;
   private plasmaBladeTexCyan: THREE.CanvasTexture;
   private plasmaBladeTexMagenta: THREE.CanvasTexture;
+  private batteryCircuitTex!: THREE.CanvasTexture;
+  private medkitDecalTex!: THREE.CanvasTexture;
   private wetOrganicTextures: Map<string, THREE.CanvasTexture> = new Map();
   private pulsingVeinTextures: Map<string, THREE.CanvasTexture> = new Map();
 
@@ -217,6 +222,7 @@ export class ThreeSceneManager {
   private collectibleMeshMap: Map<number, THREE.Group> = new Map();
   private laserMeshMap: Map<string, THREE.Group> = new Map();
   private propMeshMap: Map<string, THREE.Group> = new Map();
+  private pitMeshMap: Map<string, THREE.Group> = new Map();
   private portalGroup: THREE.Group;
   private portalVortexMesh: THREE.Mesh;
   private portalRings: THREE.Mesh[] = [];
@@ -359,6 +365,72 @@ export class ThreeSceneManager {
     }),
     labHazardStripes: new THREE.MeshBasicMaterial({
       color: 0xffe600,
+    }),
+    chasmVoidInterior: new THREE.MeshBasicMaterial({
+      color: 0x000000,
+    }),
+    chasmFloorMask: new THREE.MeshBasicMaterial({
+      color: 0x020104,
+      side: THREE.DoubleSide,
+    }),
+    craterBlastDecal: new THREE.MeshStandardMaterial({
+      color: 0x0a0810,
+      roughness: 0.98,
+      metalness: 0.1,
+      emissive: 0x030105,
+      emissiveIntensity: 0.1,
+      transparent: true,
+      opacity: 0.92,
+    }),
+    chasmCrackedConcrete: new THREE.MeshStandardMaterial({
+      color: 0x1a1624,
+      roughness: 0.94,
+      metalness: 0.18,
+      emissive: 0x020104,
+      emissiveIntensity: 0.2,
+      side: THREE.DoubleSide,
+    }),
+    chasmBrokenSlab: new THREE.MeshStandardMaterial({
+      color: 0x14111e,
+      roughness: 0.86,
+      metalness: 0.32,
+      emissive: 0x040208,
+      emissiveIntensity: 0.2,
+    }),
+    chasmRockSpire: new THREE.MeshStandardMaterial({
+      color: 0x0e0b16,
+      roughness: 0.96,
+      metalness: 0.1,
+      emissive: 0x020104,
+      emissiveIntensity: 0.15,
+    }),
+    chasmExposedRebar: new THREE.MeshStandardMaterial({
+      color: 0x4a2e1c,
+      roughness: 0.42,
+      metalness: 0.88,
+      emissive: 0x140802,
+      emissiveIntensity: 0.3,
+    }),
+    chasmRebarTipGlow: new THREE.MeshBasicMaterial({
+      color: 0xff6600,
+    }),
+    chasmThermalVein: new THREE.MeshBasicMaterial({
+      color: 0xff3300,
+    }),
+    chasmConcreteRubble: new THREE.MeshStandardMaterial({
+      color: 0x221c2e,
+      roughness: 0.94,
+      metalness: 0.12,
+      emissive: 0x030206,
+      emissiveIntensity: 0.15,
+    }),
+    chasmDustParticleMat: new THREE.PointsMaterial({
+      color: 0x90a4be,
+      size: 2.8,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
     }),
     hologramProjectorBeam: new THREE.MeshBasicMaterial({
       color: 0xffd700,
@@ -675,6 +747,156 @@ export class ThreeSceneManager {
     portalRing: new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       wireframe: true,
+    }),
+    // 3D Collectible & Sci-Fi Tactical Props Materials
+    medkitDarkChassis: new THREE.MeshStandardMaterial({
+      color: 0x141a24,
+      roughness: 0.32,
+      metalness: 0.85,
+      emissive: 0x060c14,
+      emissiveIntensity: 0.25,
+    }),
+    medkitWhitePlates: new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.3,
+      metalness: 0.5,
+    }),
+    medkitBumperTitanium: new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.45,
+      metalness: 0.7,
+    }),
+    medkitLatchAlloy: new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.18,
+      metalness: 0.95,
+    }),
+    medkitNeonCrossGreen: new THREE.MeshStandardMaterial({
+      color: 0x00ff66,
+      emissive: 0x00ff66,
+      emissiveIntensity: 3.5,
+      roughness: 0.05,
+      metalness: 0.6,
+    }),
+    medkitNeonCrossRed: new THREE.MeshStandardMaterial({
+      color: 0xff0044,
+      emissive: 0xff0033,
+      emissiveIntensity: 3.5,
+      roughness: 0.05,
+      metalness: 0.6,
+    }),
+    medkitStatusGreen: new THREE.MeshBasicMaterial({
+      color: 0x00ff66,
+    }),
+    medkitStatusCyan: new THREE.MeshBasicMaterial({
+      color: 0x00ffd1,
+    }),
+    medkitStatusAmber: new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+    }),
+    medkitHoloRingDisc: new THREE.MeshBasicMaterial({
+      color: 0x00ff66,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+    // Weapon Props Materials
+    weaponSteelGunmetal: new THREE.MeshStandardMaterial({
+      color: 0x161b26,
+      roughness: 0.28,
+      metalness: 0.92,
+      emissive: 0x040810,
+      emissiveIntensity: 0.15,
+    }),
+    weaponTitaniumPlate: new THREE.MeshStandardMaterial({
+      color: 0x5a6a80,
+      roughness: 0.22,
+      metalness: 0.9,
+    }),
+    weaponGoldTrim: new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      emissive: 0xffaa00,
+      emissiveIntensity: 1.4,
+      roughness: 0.2,
+      metalness: 0.95,
+    }),
+    weaponNeonCyan: new THREE.MeshBasicMaterial({
+      color: 0x00ffd1,
+    }),
+    weaponNeonMagenta: new THREE.MeshBasicMaterial({
+      color: 0xff00e5,
+    }),
+    weaponNeonAmber: new THREE.MeshBasicMaterial({
+      color: 0xff8800,
+    }),
+    weaponNeonElectricBlue: new THREE.MeshBasicMaterial({
+      color: 0x00bfff,
+    }),
+    weaponKatanaBladeEdge: new THREE.MeshStandardMaterial({
+      color: 0xddffff,
+      emissive: 0x00ffd1,
+      emissiveIntensity: 2.5,
+      roughness: 0.04,
+      metalness: 0.98,
+    }),
+    weaponKatanaHiltWrap: new THREE.MeshStandardMaterial({
+      color: 0x0d1117,
+      roughness: 0.65,
+      metalness: 0.2,
+    }),
+    weaponHoloPedestalRing: new THREE.MeshBasicMaterial({
+      color: 0xff00e5,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+    // Mechanical Battery Cell (Bio-Core) Materials
+    batteryTerminalEndCap: new THREE.MeshStandardMaterial({
+      color: 0x242d3c,
+      roughness: 0.25,
+      metalness: 0.94,
+      emissive: 0x0b1320,
+      emissiveIntensity: 0.3,
+    }),
+    batteryCopperContact: new THREE.MeshStandardMaterial({
+      color: 0xd97724,
+      roughness: 0.18,
+      metalness: 0.96,
+      emissive: 0x5a2d0c,
+      emissiveIntensity: 0.5,
+    }),
+    batteryGlassCylinder: new THREE.MeshStandardMaterial({
+      color: 0x00ffd1,
+      roughness: 0.06,
+      metalness: 0.15,
+      transparent: true,
+      opacity: 0.52,
+      emissive: 0x003328,
+      emissiveIntensity: 0.8,
+    }),
+    batteryQuantumFuelRod: new THREE.MeshStandardMaterial({
+      color: 0x00ffaa,
+      emissive: 0x00ffaa,
+      emissiveIntensity: 3.8,
+      roughness: 0.05,
+      metalness: 0.9,
+    }),
+    batteryExoSupportRib: new THREE.MeshStandardMaterial({
+      color: 0x111620,
+      roughness: 0.35,
+      metalness: 0.9,
+    }),
+    batteryCircuitNeonLine: new THREE.MeshBasicMaterial({
+      color: 0x00ffd1,
+    }),
+    batteryGyroRingNeon: new THREE.MeshStandardMaterial({
+      color: 0x00e5ff,
+      emissive: 0x00a8ff,
+      emissiveIntensity: 2.2,
+      roughness: 0.12,
+      metalness: 0.92,
     }),
   };
 
@@ -1072,6 +1294,189 @@ export class ThreeSceneManager {
     steelTex.repeat.set(2, 2);
     this.materials.factorySteel.map = steelTex;
     this.materials.factorySteel.needsUpdate = true;
+
+    // 8. Procedural Fractured Pit Wall with Cracked Concrete, Exposed Rebar & Deep Shadow Gradient (512x512)
+    const pitCanvas = document.createElement('canvas');
+    pitCanvas.width = 512;
+    pitCanvas.height = 512;
+    const pitCtx = pitCanvas.getContext('2d');
+    if (pitCtx) {
+      // Vertical depth gradient: rough cracked slate concrete top sinking into pitch-black abyss
+      const pitGrad = pitCtx.createLinearGradient(0, 0, 0, 512);
+      pitGrad.addColorStop(0, '#221e2e');
+      pitGrad.addColorStop(0.12, '#181422');
+      pitGrad.addColorStop(0.35, '#0e0b16');
+      pitGrad.addColorStop(0.65, '#05030a');
+      pitGrad.addColorStop(1, '#000000');
+      pitCtx.fillStyle = pitGrad;
+      pitCtx.fillRect(0, 0, 512, 512);
+
+      // Micro concrete aggregate noise & stippling
+      for (let n = 0; n < 600; n++) {
+        const nx = (n * 37) % 512;
+        const ny = (n * 53) % 280;
+        const nAlpha = (1 - ny / 280) * 0.18;
+        pitCtx.fillStyle = n % 2 === 0 ? `rgba(255, 255, 255, ${nAlpha})` : `rgba(0, 0, 0, ${nAlpha * 1.5})`;
+        pitCtx.fillRect(nx, ny, (n % 3) + 1, (n % 3) + 1);
+      }
+
+      // Horizontal Sub-Level Concrete Strata & Fractures
+      for (let s = 0; s < 5; s++) {
+        const sy = 40 + s * 55;
+        pitCtx.strokeStyle = `rgba(10, 8, 16, ${0.8 - s * 0.12})`;
+        pitCtx.lineWidth = 3 - s * 0.4;
+        pitCtx.beginPath();
+        pitCtx.moveTo(0, sy);
+        for (let sx = 0; sx <= 512; sx += 40) {
+          pitCtx.lineTo(sx, sy + Math.sin(sx * 0.05 + s * 2) * 6);
+        }
+        pitCtx.stroke();
+      }
+
+      // Embedded Structural Rebar Mesh Grid (Severed steel reinforcement rods)
+      for (let rx = 30; rx < 512; rx += 70) {
+        // Vertical rusted rebar rods
+        pitCtx.strokeStyle = '#4a2c18';
+        pitCtx.lineWidth = 2.5;
+        pitCtx.beginPath();
+        pitCtx.moveTo(rx, 0);
+        pitCtx.lineTo(rx + ((rx % 3) - 1) * 8, 220);
+        pitCtx.stroke();
+
+        // Rusted rebar ribs & ridges
+        pitCtx.strokeStyle = '#824823';
+        pitCtx.lineWidth = 1.5;
+        for (let ry = 10; ry < 220; ry += 16) {
+          pitCtx.beginPath();
+          pitCtx.moveTo(rx - 3, ry);
+          pitCtx.lineTo(rx + 4, ry - 2);
+          pitCtx.stroke();
+        }
+      }
+
+      // Branching Jagged Structural Crack Veins
+      const drawCrackVein = (startX: number, startY: number, length: number, angle: number) => {
+        let cx = startX;
+        let cy = startY;
+        pitCtx.strokeStyle = '#040208';
+        pitCtx.lineWidth = 2.5;
+        pitCtx.beginPath();
+        pitCtx.moveTo(cx, cy);
+
+        const steps = 14;
+        const stepLen = length / steps;
+        for (let step = 0; step < steps; step++) {
+          angle += ((Math.sin(step * 4.7 + startX) * 0.8) - 0.4);
+          cx += Math.cos(angle) * stepLen;
+          cy += Math.abs(Math.sin(angle)) * stepLen;
+          pitCtx.lineTo(cx, cy);
+
+          // Faint glowing stress micro-fracture along deep crevasse
+          if (step % 4 === 0 && cy < 260) {
+            pitCtx.fillStyle = 'rgba(255, 0, 85, 0.18)';
+            pitCtx.fillRect(cx - 1, cy - 1, 2, 2);
+          }
+        }
+        pitCtx.stroke();
+      };
+
+      drawCrackVein(80, 0, 320, Math.PI * 0.45);
+      drawCrackVein(220, 0, 380, Math.PI * 0.52);
+      drawCrackVein(360, 0, 290, Math.PI * 0.48);
+      drawCrackVein(470, 0, 340, Math.PI * 0.55);
+
+      // Dangling Conduit Lines & Frayed Wire Traces
+      pitCtx.strokeStyle = '#0d131d';
+      pitCtx.lineWidth = 2;
+      pitCtx.beginPath();
+      pitCtx.moveTo(140, 0);
+      pitCtx.bezierCurveTo(145, 80, 160, 160, 150, 240);
+      pitCtx.stroke();
+
+      pitCtx.strokeStyle = '#0d131d';
+      pitCtx.lineWidth = 1.5;
+      pitCtx.beginPath();
+      pitCtx.moveTo(390, 0);
+      pitCtx.bezierCurveTo(380, 90, 410, 170, 400, 250);
+      pitCtx.stroke();
+    }
+
+    const pitWallTex = new THREE.CanvasTexture(pitCanvas);
+    pitWallTex.wrapS = THREE.RepeatWrapping;
+    pitWallTex.wrapT = THREE.ClampToEdgeWrapping;
+    pitWallTex.repeat.set(1, 1);
+    this.materials.chasmCrackedConcrete.map = pitWallTex;
+    this.materials.chasmCrackedConcrete.needsUpdate = true;
+    this.materials.chasmBrokenSlab.map = pitWallTex;
+    this.materials.chasmBrokenSlab.needsUpdate = true;
+    this.materials.chasmRockSpire.map = pitWallTex;
+    this.materials.chasmRockSpire.needsUpdate = true;
+
+    // 9. Procedural Battery PCB Circuit Line & Battery Telemetry Texture (512x512)
+    const circuitCanvas = document.createElement('canvas');
+    circuitCanvas.width = 512;
+    circuitCanvas.height = 512;
+    const circuitCtx = circuitCanvas.getContext('2d');
+    if (circuitCtx) {
+      circuitCtx.fillStyle = '#060f18';
+      circuitCtx.fillRect(0, 0, 512, 512);
+
+      // PCB Grid
+      circuitCtx.strokeStyle = 'rgba(0, 255, 209, 0.1)';
+      circuitCtx.lineWidth = 1;
+      for (let i = 0; i < 512; i += 32) {
+        circuitCtx.beginPath();
+        circuitCtx.moveTo(i, 0);
+        circuitCtx.lineTo(i, 512);
+        circuitCtx.stroke();
+        circuitCtx.beginPath();
+        circuitCtx.moveTo(0, i);
+        circuitCtx.lineTo(512, i);
+        circuitCtx.stroke();
+      }
+
+      // Glowing Green/Cyan Bus Lines & Circuit Traces
+      circuitCtx.strokeStyle = '#00ffd1';
+      circuitCtx.lineWidth = 2.5;
+      circuitCtx.shadowColor = '#00ffd1';
+      circuitCtx.shadowBlur = 8;
+
+      for (let t = 0; t < 16; t++) {
+        const tx = (t * 32) % 512;
+        circuitCtx.beginPath();
+        circuitCtx.moveTo(tx, 0);
+        circuitCtx.lineTo(tx, 140);
+        circuitCtx.lineTo(tx + 20, 160);
+        circuitCtx.lineTo(tx + 20, 350);
+        circuitCtx.lineTo(tx, 370);
+        circuitCtx.lineTo(tx, 512);
+        circuitCtx.stroke();
+
+        // Micro IC Chips & Vias
+        circuitCtx.fillStyle = '#ffffff';
+        circuitCtx.fillRect(tx + 16, 240, 8, 8);
+        circuitCtx.fillStyle = '#00ff88';
+        circuitCtx.beginPath();
+        circuitCtx.arc(tx, 80, 3.5, 0, Math.PI * 2);
+        circuitCtx.arc(tx, 440, 3.5, 0, Math.PI * 2);
+        circuitCtx.fill();
+      }
+
+      // Battery Level Telemetry Meter (25%, 50%, 75%, 100%)
+      circuitCtx.fillStyle = '#00ff66';
+      circuitCtx.shadowColor = '#00ff66';
+      circuitCtx.shadowBlur = 10;
+      for (let b = 0; b < 4; b++) {
+        circuitCtx.fillRect(60 + b * 100, 220, 70, 24);
+      }
+      circuitCtx.font = 'bold 20px monospace';
+      circuitCtx.fillStyle = '#ffffff';
+      circuitCtx.fillText('BIO-CELL 100%', 160, 280);
+    }
+    this.batteryCircuitTex = new THREE.CanvasTexture(circuitCanvas);
+    this.batteryCircuitTex.wrapS = THREE.RepeatWrapping;
+    this.batteryCircuitTex.wrapT = THREE.RepeatWrapping;
+    this.batteryCircuitTex.repeat.set(2, 1);
   }
 
   constructor(canvas: HTMLCanvasElement) {
@@ -1104,8 +1509,15 @@ export class ThreeSceneManager {
     this.scene.fog = new THREE.FogExp2(0x030610, 0.00075);
 
     const aspect = width / height;
-    // PerspectiveCamera with wider cinematic Field of View (FOV: 65)
-    this.camera = new THREE.PerspectiveCamera(65, aspect, 1.0, 14000);
+    // PerspectiveCamera with dynamic adaptive Field of View for mobile landscapes
+    const baseFov = 65;
+    const targetAspect = 16 / 9;
+    let initialFov = baseFov;
+    if (aspect < targetAspect) {
+      const hFov = 2 * Math.atan(Math.tan((baseFov * Math.PI) / 360) * targetAspect);
+      initialFov = (2 * Math.atan(Math.tan(hFov / 2) / aspect) * 180) / Math.PI;
+    }
+    this.camera = new THREE.PerspectiveCamera(initialFov, aspect, 1.0, 14000);
     this.camera.position.set(0, 115, 175);
     this.camera.lookAt(0, 12, -180);
 
@@ -1658,12 +2070,12 @@ export class ThreeSceneManager {
 
   // --- 1. LIGHTING RIG (REAL-TIME 3D CYBER-ORGANIC ILLUMINATION & SHADOW RIG) ---
   private initLights() {
-    // 1. Dark & Moody Ambient Atmosphere Light (Dim tone keeps neon cyber elements glowing without over-illuminating)
-    this.ambientLight = new THREE.AmbientLight(0x040814, 0.18);
+    // 1. Pitch Cyber Noir Ambient Light (Enforces dark environment where flashlight is essential for visibility)
+    this.ambientLight = new THREE.AmbientLight(0x020308, 0.06);
     this.scene.add(this.ambientLight);
 
-    // 2. Subtle Directional Key Light (Electric Cyan 0x00ffd1, 0.28 intensity with Soft Real-time Shadows)
-    this.dirCyanKeyLight = new THREE.DirectionalLight(0x00ffd1, 0.28);
+    // 2. Subtle Directional Key Light (Electric Cyan 0x00ffd1, 0.12 intensity for distant silhouette highlights)
+    this.dirCyanKeyLight = new THREE.DirectionalLight(0x00ffd1, 0.12);
     this.dirCyanKeyLight.position.set(450, 1400, 550);
     this.dirCyanKeyLight.castShadow = true;
     this.dirCyanKeyLight.shadow.mapSize.width = 2048;
@@ -1678,20 +2090,20 @@ export class ThreeSceneManager {
     this.dirCyanKeyLight.shadow.camera.bottom = -d;
     this.scene.add(this.dirCyanKeyLight);
 
-    // 3. Subtle Directional Rim Light (Vibrant Magenta 0xff00a0, 0.22 intensity for soft rim reflections)
-    this.dirMagentaRimLight = new THREE.DirectionalLight(0xff00a0, 0.22);
+    // 3. Subtle Directional Rim Light (Vibrant Magenta 0xff00a0, 0.08 intensity for soft horizon glow)
+    this.dirMagentaRimLight = new THREE.DirectionalLight(0xff00a0, 0.08);
     this.dirMagentaRimLight.position.set(-500, 1100, -600);
     this.scene.add(this.dirMagentaRimLight);
 
-    // 4. Real-Time High-Intensity Forward Flashlight (Forward-facing spotlight with sharp floor projection & dynamic grid illumination)
-    this.heroSpotLight = new THREE.SpotLight(0xe8f8ff, 11.5, 1200, Math.PI / 4.0, 0.25, 1.35);
+    // 4. Real-Time High-Intensity Forward Flashlight (Forward-facing tactical spotlight illuminating dark terrain & revealing hazards)
+    this.heroSpotLight = new THREE.SpotLight(0xe8f8ff, 14.5, 1300, Math.PI / 3.4, 0.35, 1.2);
     this.heroSpotLight.position.set(0, 28, 0);
     this.heroSpotLight.castShadow = true;
     this.heroSpotLight.shadow.mapSize.width = 1024;
     this.heroSpotLight.shadow.mapSize.height = 1024;
     this.heroSpotLight.shadow.bias = -0.0001;
     this.heroSpotLight.shadow.camera.near = 10;
-    this.heroSpotLight.shadow.camera.far = 1200;
+    this.heroSpotLight.shadow.camera.far = 1300;
 
     this.heroSpotLightTarget = new THREE.Object3D();
     this.heroSpotLightTarget.position.set(0, 0, -360);
@@ -1700,7 +2112,7 @@ export class ThreeSceneManager {
     this.scene.add(this.heroSpotLight);
 
     // 5. Player Dynamic Tactical PointLight (Subtle Core Neon Aura)
-    this.playerPointLight = new THREE.PointLight(0x00ffd1, 1.6, 320, 1.4);
+    this.playerPointLight = new THREE.PointLight(0x00ffd1, 1.4, 300, 1.4);
     this.playerPointLight.position.set(0, 30, 0);
     this.scene.add(this.playerPointLight);
 
@@ -3307,7 +3719,8 @@ export class ThreeSceneManager {
     screenShake: number,
     screenShakeAngle: number,
     flashAlpha: number,
-    flashColor: string
+    flashColor: string,
+    chunks: GridMapChunk[] = []
   ) {
     this.animTick += 0.032;
 
@@ -3327,6 +3740,9 @@ export class ThreeSceneManager {
     this.updateFactoryEnvironment(player);
     this.updateCyberRain(player);
     this.updateVolumetricFog(player);
+
+    // 4.5 Update 3D Chasm Void & Broken Floor Pit Hazards (Floor Cutouts, 3D Abyss Wells & Warning Rails)
+    this.update3DPits(chunks, player);
 
     // 5. Update 3D Solid Obstacles & Building Geometry
     this.update3DObstacles(obstacles, player);
@@ -3702,12 +4118,30 @@ export class ThreeSceneManager {
     const isCrouching = !!player.isCrouching;
     const isCovered = !!player.isCovered;
 
-    // Lower player body when crouching / taking cover
-    const playerBaseY = isCrouching ? -6 : 0;
+    // Lower player body when crouching / taking cover or plunging into bottomless abyss pit
+    const isFalling = !!player.isFallingIntoAbyss || player.actionState === 'FALLING_INTO_VOID';
+    const fallProgress = isFalling ? Math.min(1.0, (40 - (player.fallingTimer || 0)) / 40) : 0;
+    const playerBaseY = isFalling
+      ? -fallProgress * 160
+      : isCrouching
+      ? -6
+      : 0;
+
     this.playerGroup.position.set(px, playerBaseY, pz);
 
-    // Player Rotation: 3D Y-axis aligns with 2D Movement Angle
+    // Dynamic scale when falling down into the void
+    const fallScale = isFalling ? Math.max(0.08, 1 - fallProgress * 0.9) : 1.0;
+    this.playerGroup.scale.set(fallScale, fallScale, fallScale);
+
+    // Player Rotation: 3D Y-axis aligns with 2D Movement Angle + tumble spin on void fall
     this.playerGroup.rotation.y = -player.angle + Math.PI / 2;
+    if (isFalling) {
+      this.playerGroup.rotation.x = fallProgress * Math.PI * 4;
+      this.playerGroup.rotation.z = fallProgress * Math.PI * 3;
+    } else {
+      this.playerGroup.rotation.x = 0;
+      this.playerGroup.rotation.z = 0;
+    }
 
     // Movement Animation: Sneaking or Run-Cycle stride on limbs
     const speed = Math.hypot(player.velocity.x, player.velocity.y);
@@ -4821,6 +5255,619 @@ export class ThreeSceneManager {
     }
   }
 
+  // --- 3D COLLECTIBLES & CYBERPUNK 3D PROP BUILDERS ---
+
+  private build3DMedkit(group: THREE.Group) {
+    // 1. Main Dark Alloy Tactical Casing
+    const bodyGeo = new THREE.BoxGeometry(22, 11, 15);
+    const bodyMesh = new THREE.Mesh(bodyGeo, this.materials.medkitDarkChassis);
+    bodyMesh.castShadow = true;
+    group.add(bodyMesh);
+
+    // 2. Beveled Upper Lid Cover
+    const lidGeo = new THREE.BoxGeometry(23, 2.6, 16);
+    const lidMesh = new THREE.Mesh(lidGeo, this.materials.medkitWhitePlates);
+    lidMesh.position.y = 5.8;
+    group.add(lidMesh);
+
+    // 3. Reinforced Shock-Absorbing Corner Bumpers (8 Corners)
+    const bumperGeo = new THREE.BoxGeometry(4.2, 4.2, 4.2);
+    const corners = [
+      [-10, 4.5, -6.5], [10, 4.5, -6.5], [-10, 4.5, 6.5], [10, 4.5, 6.5],
+      [-10, -4.5, -6.5], [10, -4.5, -6.5], [-10, -4.5, 6.5], [10, -4.5, 6.5],
+    ];
+    for (const [bx, by, bz] of corners) {
+      const bMesh = new THREE.Mesh(bumperGeo, this.materials.medkitBumperTitanium);
+      bMesh.position.set(bx, by, bz);
+      group.add(bMesh);
+    }
+
+    // 4. Heavy-Duty Alloy Side Latches
+    const latchGeo = new THREE.BoxGeometry(2.4, 5.5, 1.2);
+    const latch1 = new THREE.Mesh(latchGeo, this.materials.medkitLatchAlloy);
+    latch1.position.set(-6, 1.2, 7.8);
+    group.add(latch1);
+    const latch2 = new THREE.Mesh(latchGeo, this.materials.medkitLatchAlloy);
+    latch2.position.set(6, 1.2, 7.8);
+    group.add(latch2);
+
+    // 5. Ergonomic Molded Top Carry Handle
+    const handleMountGeo = new THREE.BoxGeometry(2.2, 2.8, 2.2);
+    const hm1 = new THREE.Mesh(handleMountGeo, this.materials.medkitBumperTitanium);
+    hm1.position.set(-4.5, 8.0, 0);
+    group.add(hm1);
+    const hm2 = new THREE.Mesh(handleMountGeo, this.materials.medkitBumperTitanium);
+    hm2.position.set(4.5, 8.0, 0);
+    group.add(hm2);
+
+    const handleBarGeo = new THREE.CylinderGeometry(1.1, 1.1, 8.5, 8);
+    handleBarGeo.rotateZ(Math.PI / 2);
+    const handleBar = new THREE.Mesh(handleBarGeo, this.materials.medkitLatchAlloy);
+    handleBar.position.set(0, 9.2, 0);
+    group.add(handleBar);
+
+    // 6. Glowing 3D Neon Green/Red Medical Cross on Top Lid
+    const crossTopH = new THREE.Mesh(new THREE.BoxGeometry(11, 1.2, 3.4), this.materials.medkitNeonCrossGreen);
+    crossTopH.position.set(0, 7.3, 0);
+    group.add(crossTopH);
+
+    const crossTopV = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.2, 11), this.materials.medkitNeonCrossGreen);
+    crossTopV.position.set(0, 7.3, 0);
+    group.add(crossTopV);
+
+    // 7. Glowing 3D Neon Medical Cross on Front Bezel
+    const crossFrontH = new THREE.Mesh(new THREE.BoxGeometry(7.5, 2.4, 1.0), this.materials.medkitNeonCrossGreen);
+    crossFrontH.position.set(0, 0.8, 8.0);
+    group.add(crossFrontH);
+
+    const crossFrontV = new THREE.Mesh(new THREE.BoxGeometry(2.4, 7.5, 1.0), this.materials.medkitNeonCrossGreen);
+    crossFrontV.position.set(0, 0.8, 8.0);
+    group.add(crossFrontV);
+
+    // 8. Biometric Diagnostic Status LED Dots
+    const ledGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.4, 6);
+    ledGeo.rotateX(Math.PI / 2);
+    const led1 = new THREE.Mesh(ledGeo, this.materials.medkitStatusGreen);
+    led1.position.set(-7, 7.2, -4);
+    group.add(led1);
+    const led2 = new THREE.Mesh(ledGeo, this.materials.medkitStatusCyan);
+    led2.position.set(-5, 7.2, -4);
+    group.add(led2);
+    const led3 = new THREE.Mesh(ledGeo, this.materials.medkitStatusAmber);
+    led3.position.set(-3, 7.2, -4);
+    group.add(led3);
+
+    // 9. Ground Medical Hologram Aura Disc
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+
+    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(13, 19, 24), this.materials.medkitHoloRingDisc);
+    ringMesh.rotateX(-Math.PI / 2);
+    holoDisc.add(ringMesh);
+
+    const crossFloorH = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.2), this.materials.medkitHoloRingDisc);
+    crossFloorH.rotateX(-Math.PI / 2);
+    holoDisc.add(crossFloorH);
+
+    const crossFloorV = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 14), this.materials.medkitHoloRingDisc);
+    crossFloorV.rotateX(-Math.PI / 2);
+    holoDisc.add(crossFloorV);
+
+    group.add(holoDisc);
+  }
+
+  private build3DWeaponProp(group: THREE.Group, weaponType?: WeaponDropModel) {
+    const wType = weaponType || 'PLASMA_BLASTER';
+
+    if (wType === 'KATANA') {
+      // --- CYBERNETIC ENERGIZED KATANA BLADE ---
+      const katanaGroup = new THREE.Group();
+      katanaGroup.rotation.z = Math.PI / 8; // Dynamic 22.5° tilt
+      katanaGroup.rotation.x = Math.PI / 12;
+
+      // 1. Blade Core & Spine
+      const bladeCoreGeo = new THREE.BoxGeometry(32, 2.2, 0.7);
+      const bladeCoreMesh = new THREE.Mesh(bladeCoreGeo, this.materials.katanaBladeCore);
+      bladeCoreMesh.position.set(16, 0, 0);
+      katanaGroup.add(bladeCoreMesh);
+
+      // 2. Energized Superheated Cyan/Magenta Cutting Edge
+      const edgeGeo = new THREE.BoxGeometry(33, 0.8, 0.4);
+      const edgeMesh = new THREE.Mesh(edgeGeo, this.materials.weaponKatanaBladeEdge);
+      edgeMesh.position.set(16.5, -1.2, 0);
+      katanaGroup.add(edgeMesh);
+
+      // 3. Kissaki Angled Point Tip
+      const tipGeo = new THREE.ConeGeometry(1.6, 4.5, 4);
+      tipGeo.rotateZ(-Math.PI / 2);
+      const tipMesh = new THREE.Mesh(tipGeo, this.materials.weaponKatanaBladeEdge);
+      tipMesh.position.set(33.5, -0.4, 0);
+      katanaGroup.add(tipMesh);
+
+      // 4. Gold Habaki (Collar)
+      const habakiGeo = new THREE.BoxGeometry(2.5, 3.0, 1.2);
+      const habakiMesh = new THREE.Mesh(habakiGeo, this.materials.weaponGoldTrim);
+      habakiMesh.position.set(1.2, 0, 0);
+      katanaGroup.add(habakiMesh);
+
+      // 5. Octagonal Tsuba (Handguard)
+      const tsubaGeo = new THREE.CylinderGeometry(4.8, 4.8, 1.2, 8);
+      tsubaGeo.rotateZ(Math.PI / 2);
+      const tsubaMesh = new THREE.Mesh(tsubaGeo, this.materials.weaponSteelGunmetal);
+      tsubaMesh.position.set(0, 0, 0);
+      katanaGroup.add(tsubaMesh);
+
+      const tsubaGoldRing = new THREE.Mesh(new THREE.TorusGeometry(4.6, 0.4, 6, 16), this.materials.weaponGoldTrim);
+      tsubaGoldRing.rotateY(Math.PI / 2);
+      tsubaMesh.add(tsubaGoldRing);
+
+      // 6. Braided Diamond-Wrap Tsuka (Handle)
+      const hiltGeo = new THREE.CylinderGeometry(1.8, 1.8, 11, 8);
+      hiltGeo.rotateZ(Math.PI / 2);
+      const hiltMesh = new THREE.Mesh(hiltGeo, this.materials.weaponKatanaHiltWrap);
+      hiltMesh.position.set(-6, 0, 0);
+      katanaGroup.add(hiltMesh);
+
+      // Gold Kashira Pommel Cap
+      const pommelGeo = new THREE.CylinderGeometry(2.1, 2.1, 1.4, 8);
+      pommelGeo.rotateZ(Math.PI / 2);
+      const pommelMesh = new THREE.Mesh(pommelGeo, this.materials.weaponGoldTrim);
+      pommelMesh.position.set(-11.8, 0, 0);
+      katanaGroup.add(pommelMesh);
+
+      group.add(katanaGroup);
+    } else if (wType === 'LIGHTNING_CHAIN') {
+      // --- FUTURISTIC TESLA ARC RIFLE ---
+      const rifleGroup = new THREE.Group();
+
+      // Main Receiver Chassis
+      const receiverGeo = new THREE.BoxGeometry(24, 6.5, 4.5);
+      const receiverMesh = new THREE.Mesh(receiverGeo, this.materials.weaponSteelGunmetal);
+      rifleGroup.add(receiverMesh);
+
+      // Precision Extended Barrel
+      const barrelGeo = new THREE.CylinderGeometry(1.5, 1.5, 20, 12);
+      barrelGeo.rotateZ(Math.PI / 2);
+      const barrelMesh = new THREE.Mesh(barrelGeo, this.materials.weaponTitaniumPlate);
+      barrelMesh.position.set(18, 0.8, 0);
+      rifleGroup.add(barrelMesh);
+
+      // 3 High-Voltage Tesla Energy Coils
+      for (let c = 0; c < 3; c++) {
+        const coilGeo = new THREE.TorusGeometry(3.0, 0.65, 8, 16);
+        coilGeo.rotateY(Math.PI / 2);
+        const coilMesh = new THREE.Mesh(coilGeo, this.materials.weaponNeonElectricBlue);
+        coilMesh.position.set(12 + c * 5.5, 0.8, 0);
+        rifleGroup.add(coilMesh);
+      }
+
+      // Twin Forward Tesla Arc Prongs
+      const prongGeo = new THREE.BoxGeometry(7, 0.8, 0.8);
+      const prong1 = new THREE.Mesh(prongGeo, this.materials.weaponNeonCyan);
+      prong1.position.set(28, 2.2, 1.2);
+      rifleGroup.add(prong1);
+      const prong2 = new THREE.Mesh(prongGeo, this.materials.weaponNeonCyan);
+      prong2.position.set(28, -0.6, 1.2);
+      rifleGroup.add(prong2);
+
+      // Holographic Reflex Sight
+      const sightMount = new THREE.Mesh(new THREE.BoxGeometry(6, 2.5, 2.0), this.materials.weaponTitaniumPlate);
+      sightMount.position.set(-2, 4.5, 0);
+      rifleGroup.add(sightMount);
+      const sightLens = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.8, 12), this.materials.weaponNeonCyan);
+      sightLens.rotateY(Math.PI / 2);
+      sightLens.position.set(-2, 5.8, 0);
+      rifleGroup.add(sightLens);
+
+      // Curved Power Magazine & Skeleton Stock
+      const magGeo = new THREE.BoxGeometry(4.5, 9, 2.5);
+      magGeo.rotateZ(-Math.PI / 10);
+      const magMesh = new THREE.Mesh(magGeo, this.materials.weaponSteelGunmetal);
+      magMesh.position.set(-4, -6.5, 0);
+      rifleGroup.add(magMesh);
+
+      const stockGeo = new THREE.BoxGeometry(10, 5, 3.2);
+      const stockMesh = new THREE.Mesh(stockGeo, this.materials.weaponTitaniumPlate);
+      stockMesh.position.set(-16, -1.0, 0);
+      rifleGroup.add(stockMesh);
+
+      group.add(rifleGroup);
+    } else if (wType === 'SPREAD_CANNON') {
+      // --- HEAVY CYBER SCATTERGUN / SHOTGUN ---
+      const shotgunGroup = new THREE.Group();
+
+      // Heavy Receiver
+      const recGeo = new THREE.BoxGeometry(22, 7.5, 6.5);
+      const recMesh = new THREE.Mesh(recGeo, this.materials.weaponSteelGunmetal);
+      shotgunGroup.add(recMesh);
+
+      // Triple Clustered Heavy Barrels with Shroud
+      const barrelOffsets = [[14, 1.5, -1.6], [14, 1.5, 1.6], [14, -1.4, 0]];
+      for (const [bx, by, bz] of barrelOffsets) {
+        const barGeo = new THREE.CylinderGeometry(1.8, 1.8, 16, 10);
+        barGeo.rotateZ(Math.PI / 2);
+        const barMesh = new THREE.Mesh(barGeo, this.materials.weaponTitaniumPlate);
+        barMesh.position.set(bx, by, bz);
+        shotgunGroup.add(barMesh);
+
+        const muzzleRing = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.4, 6, 12), this.materials.weaponNeonAmber);
+        muzzleRing.rotateY(Math.PI / 2);
+        muzzleRing.position.set(bx + 8, by, bz);
+        shotgunGroup.add(muzzleRing);
+      }
+
+      // Golden Rotary Ammo Drum
+      const drumGeo = new THREE.CylinderGeometry(5.5, 5.5, 5.5, 16);
+      drumGeo.rotateX(Math.PI / 2);
+      const drumMesh = new THREE.Mesh(drumGeo, this.materials.weaponGoldTrim);
+      drumMesh.position.set(-1, -4.5, 0);
+      shotgunGroup.add(drumMesh);
+
+      // Tactical Forearm Pump & Stock
+      const pumpGeo = new THREE.BoxGeometry(9, 4, 7);
+      const pumpMesh = new THREE.Mesh(pumpGeo, this.materials.weaponSteelGunmetal);
+      pumpMesh.position.set(10, -3.2, 0);
+      shotgunGroup.add(pumpMesh);
+
+      const stockGeo = new THREE.BoxGeometry(11, 5.5, 4);
+      const stockMesh = new THREE.Mesh(stockGeo, this.materials.weaponTitaniumPlate);
+      stockMesh.position.set(-15, -1.5, 0);
+      shotgunGroup.add(stockMesh);
+
+      group.add(shotgunGroup);
+    } else if (wType === 'HOMING_MISSILES') {
+      // --- QUAD-POD TACTICAL MICRO-MISSILE LAUNCHER ---
+      const podGroup = new THREE.Group();
+
+      // Launcher Casing Box
+      const boxGeo = new THREE.BoxGeometry(18, 13, 13);
+      const boxMesh = new THREE.Mesh(boxGeo, this.materials.weaponSteelGunmetal);
+      podGroup.add(boxMesh);
+
+      // Front Face with 4 Circular Launch Tubes & Visible Missiles
+      const tubeOffsets = [[-3.5, 3.5], [3.5, 3.5], [-3.5, -3.5], [3.5, -3.5]];
+      for (const [ty, tz] of tubeOffsets) {
+        const tubeRim = new THREE.Mesh(new THREE.TorusGeometry(2.6, 0.5, 6, 16), this.materials.weaponTitaniumPlate);
+        tubeRim.rotateY(Math.PI / 2);
+        tubeRim.position.set(9.1, ty, tz);
+        podGroup.add(tubeRim);
+
+        const warheadCone = new THREE.Mesh(new THREE.ConeGeometry(1.8, 4, 8), this.materials.weaponNeonAmber);
+        warheadCone.rotateZ(-Math.PI / 2);
+        warheadCone.position.set(8.5, ty, tz);
+        podGroup.add(warheadCone);
+      }
+
+      // Top Sensor Targeting Pod
+      const sensorGeo = new THREE.CylinderGeometry(2.5, 2.5, 5, 12);
+      sensorGeo.rotateZ(Math.PI / 2);
+      const sensorMesh = new THREE.Mesh(sensorGeo, this.materials.weaponGoldTrim);
+      sensorMesh.position.set(0, 8.5, 0);
+      podGroup.add(sensorMesh);
+
+      // Side Ergonomic Grips
+      const gripGeo = new THREE.BoxGeometry(4, 9, 2.5);
+      const g1 = new THREE.Mesh(gripGeo, this.materials.weaponTitaniumPlate);
+      g1.position.set(-3, -9, 0);
+      podGroup.add(g1);
+
+      group.add(podGroup);
+    } else if (wType === 'QUANTUM_VORTEX') {
+      // --- QUANTUM SINGULARITY ACCELERATOR CANNON ---
+      const qGroup = new THREE.Group();
+
+      // Top & Bottom Magnetic Accelerator Rails
+      const railGeo = new THREE.BoxGeometry(28, 2.4, 4.5);
+      const topRail = new THREE.Mesh(railGeo, this.materials.weaponSteelGunmetal);
+      topRail.position.set(6, 4.5, 0);
+      qGroup.add(topRail);
+
+      const botRail = new THREE.Mesh(railGeo, this.materials.weaponSteelGunmetal);
+      botRail.position.set(6, -4.5, 0);
+      qGroup.add(botRail);
+
+      // Central Spinning Quantum Core Containment Ring
+      const qRing = new THREE.Mesh(new THREE.TorusGeometry(6.5, 1.6, 12, 24), this.materials.weaponNeonMagenta);
+      qRing.name = 'quantumCoreRing';
+      qRing.position.set(6, 0, 0);
+      qGroup.add(qRing);
+
+      // Singularity Plasma Orb Inside
+      const plasmaOrb = new THREE.Mesh(new THREE.IcosahedronGeometry(3.5, 1), this.materials.weaponNeonMagenta);
+      plasmaOrb.position.set(6, 0, 0);
+      qGroup.add(plasmaOrb);
+
+      // Rear Reactor Body
+      const reactorGeo = new THREE.CylinderGeometry(5.5, 5.5, 10, 16);
+      reactorGeo.rotateZ(Math.PI / 2);
+      const reactorMesh = new THREE.Mesh(reactorGeo, this.materials.weaponTitaniumPlate);
+      reactorMesh.position.set(-11, 0, 0);
+      qGroup.add(reactorMesh);
+
+      group.add(qGroup);
+    } else {
+      // --- HIGH-TECH PLASMA BLASTER PISTOL (DEFAULT) ---
+      const pistolGroup = new THREE.Group();
+
+      // Upper Slide
+      const slideGeo = new THREE.BoxGeometry(18, 5, 4.2);
+      const slideMesh = new THREE.Mesh(slideGeo, this.materials.weaponSteelGunmetal);
+      pistolGroup.add(slideMesh);
+
+      // Inset Glowing Cyan Plasma Conduit
+      const conduitGeo = new THREE.BoxGeometry(13, 1.2, 1.8);
+      const conduitMesh = new THREE.Mesh(conduitGeo, this.materials.weaponNeonCyan);
+      conduitMesh.position.set(1, 2.8, 0);
+      pistolGroup.add(conduitMesh);
+
+      // Muzzle Compensator with Glowing Bore
+      const compGeo = new THREE.BoxGeometry(3.5, 4.2, 4.0);
+      const compMesh = new THREE.Mesh(compGeo, this.materials.weaponTitaniumPlate);
+      compMesh.position.set(9.5, 0, 0);
+      pistolGroup.add(compMesh);
+
+      const boreMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.5, 8), this.materials.weaponNeonCyan);
+      boreMesh.rotateZ(Math.PI / 2);
+      boreMesh.position.set(11.2, 0.4, 0);
+      pistolGroup.add(boreMesh);
+
+      // Lower Receiver & Ergonomic Grip
+      const gripGeo = new THREE.BoxGeometry(4.8, 11, 3.6);
+      gripGeo.rotateZ(-Math.PI / 12);
+      const gripMesh = new THREE.Mesh(gripGeo, this.materials.weaponSteelGunmetal);
+      gripMesh.position.set(-4.5, -6.5, 0);
+      pistolGroup.add(gripMesh);
+
+      // Gold Extended Mag Baseplate
+      const magBase = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.8, 4.2), this.materials.weaponGoldTrim);
+      magBase.position.set(-6.2, -12.5, 0);
+      pistolGroup.add(magBase);
+
+      // Underside Tactical Laser Sight
+      const laserMod = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 2.5), this.materials.weaponTitaniumPlate);
+      laserMod.position.set(4, -3.2, 0);
+      pistolGroup.add(laserMod);
+
+      group.add(pistolGroup);
+    }
+
+    // Ground Hologram Pedestal Disc
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+
+    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(14, 21, 24), this.materials.weaponHoloPedestalRing);
+    ringMesh.rotateX(-Math.PI / 2);
+    holoDisc.add(ringMesh);
+
+    group.add(holoDisc);
+  }
+
+  private build3DBioCoreBattery(group: THREE.Group, coreIndex?: number) {
+    // --- HIGH-VALUE MECHANICAL BATTERY CELL WITH CIRCUITRY & QUANTUM POWER ROD ---
+
+    // 1. Top Hexagonal Titanium Terminal Cap
+    const topCapGeo = new THREE.CylinderGeometry(11, 11, 4.5, 6);
+    const topCapMesh = new THREE.Mesh(topCapGeo, this.materials.batteryTerminalEndCap);
+    topCapMesh.position.y = 13.5;
+    group.add(topCapMesh);
+
+    // Gold Anode Contact Pin (+)
+    const topPinGeo = new THREE.CylinderGeometry(3.5, 3.5, 3.5, 12);
+    const topPinMesh = new THREE.Mesh(topPinGeo, this.materials.batteryCopperContact);
+    topPinMesh.position.y = 17.2;
+    group.add(topPinMesh);
+
+    // Glowing Neon Anode Polarity Ring (+)
+    const topPolarityRing = new THREE.Mesh(new THREE.TorusGeometry(7.5, 0.8, 6, 16), this.materials.batteryCircuitNeonLine);
+    topPolarityRing.rotateX(Math.PI / 2);
+    topPolarityRing.position.y = 15.8;
+    group.add(topPolarityRing);
+
+    // 2. Bottom Hexagonal Titanium Terminal Cap
+    const botCapGeo = new THREE.CylinderGeometry(11, 11, 4.5, 6);
+    const botCapMesh = new THREE.Mesh(botCapGeo, this.materials.batteryTerminalEndCap);
+    botCapMesh.position.y = -13.5;
+    group.add(botCapMesh);
+
+    // Gold Cathode Contact Pin (-)
+    const botPinGeo = new THREE.CylinderGeometry(3.5, 3.5, 2.5, 12);
+    const botPinMesh = new THREE.Mesh(botPinGeo, this.materials.batteryCopperContact);
+    botPinMesh.position.y = -17.0;
+    group.add(botPinMesh);
+
+    // Glowing Neon Cathode Polarity Ring (-)
+    const botPolarityRing = new THREE.Mesh(new THREE.TorusGeometry(7.5, 0.8, 6, 16), this.materials.batteryCircuitNeonLine);
+    botPolarityRing.rotateX(Math.PI / 2);
+    botPolarityRing.position.y = -15.8;
+    group.add(botPolarityRing);
+
+    // 3. Translucent Quartz-Glass Chamber
+    const glassGeo = new THREE.CylinderGeometry(8.8, 8.8, 23, 24, 1, true);
+    const glassMesh = new THREE.Mesh(glassGeo, this.materials.batteryGlassCylinder);
+    group.add(glassMesh);
+
+    // 4. Central Glowing High-Intensity Quantum Power Rod
+    const rodGeo = new THREE.CylinderGeometry(3.4, 3.4, 22, 16);
+    const rodMesh = new THREE.Mesh(rodGeo, this.materials.batteryQuantumFuelRod);
+    group.add(rodMesh);
+
+    // Concentric Neon Helical Filament Coils (3 stacked rings)
+    for (let f = -1; f <= 1; f++) {
+      const filament = new THREE.Mesh(new THREE.TorusGeometry(5.8, 0.65, 6, 24), this.materials.batteryCircuitNeonLine);
+      filament.rotateX(Math.PI / 2);
+      filament.position.y = f * 6.5;
+      group.add(filament);
+    }
+
+    // 5. 4 External Carbon-Titanium Support Exoskeleton Ribs
+    const ribGeo = new THREE.BoxGeometry(2.4, 26, 2.4);
+    const ribPositions = [[9.2, 0], [-9.2, 0], [0, 9.2], [0, -9.2]];
+    for (const [rx, rz] of ribPositions) {
+      const ribMesh = new THREE.Mesh(ribGeo, this.materials.batteryExoSupportRib);
+      ribMesh.position.set(rx, 0, rz);
+      group.add(ribMesh);
+    }
+
+    // 6. Laser-Etched PCB Circuit Line Cylinder Overlay
+    if (this.batteryCircuitTex) {
+      const circuitMat = new THREE.MeshBasicMaterial({
+        map: this.batteryCircuitTex,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const circuitMesh = new THREE.Mesh(new THREE.CylinderGeometry(8.9, 8.9, 22.5, 24, 1, true), circuitMat);
+      group.add(circuitMesh);
+    }
+
+    // 7. Counter-Rotating Gyroscopic Holographic Telemetry Rings
+    const gyroRingGeo = new THREE.TorusGeometry(15, 1.1, 8, 24);
+    const gyro1 = new THREE.Mesh(gyroRingGeo, this.materials.batteryGyroRingNeon);
+    gyro1.name = 'batteryGyroRing1';
+    gyro1.rotation.x = Math.PI / 5;
+    group.add(gyro1);
+
+    const gyro2 = new THREE.Mesh(gyroRingGeo, this.materials.batteryGyroRingNeon);
+    gyro2.name = 'batteryGyroRing2';
+    gyro2.rotation.y = Math.PI / 5;
+    group.add(gyro2);
+
+    // 8. Ground Hologram Aura Disc
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+
+    const ringMesh = new THREE.Mesh(new THREE.RingGeometry(15, 23, 24), this.materials.portalRing);
+    ringMesh.rotateX(-Math.PI / 2);
+    holoDisc.add(ringMesh);
+
+    group.add(holoDisc);
+  }
+
+  private build3DMetallicGold(group: THREE.Group) {
+    // 1. Heavy Cyber Gold Bullion Ingot
+    const barGeo = new THREE.BoxGeometry(16, 5.5, 9.5);
+    const barMesh = new THREE.Mesh(barGeo, this.materials.goldCoin);
+    group.add(barMesh);
+
+    // Security Verification Stamped Chip
+    const chipGeo = new THREE.BoxGeometry(4, 1, 4);
+    const chipMesh = new THREE.Mesh(chipGeo, this.materials.weaponGoldTrim);
+    chipMesh.position.set(0, 3.0, 0);
+    group.add(chipMesh);
+
+    // 2. Stacked Cyber Credit Coins
+    const coinGeo = new THREE.CylinderGeometry(7, 7, 2.2, 16);
+    const coin1 = new THREE.Mesh(coinGeo, this.materials.goldCoin);
+    coin1.position.set(-4, 6.5, 0);
+    coin1.rotation.x = Math.PI / 12;
+    group.add(coin1);
+
+    const coin2 = new THREE.Mesh(coinGeo, this.materials.goldCoin);
+    coin2.position.set(4, 8.5, 0);
+    coin2.rotation.z = -Math.PI / 12;
+    group.add(coin2);
+
+    // Orbiting Golden Halo Ring
+    const ringGeo = new THREE.TorusGeometry(14, 1.2, 6, 16);
+    const ringMesh = new THREE.Mesh(ringGeo, this.materials.playerGoldNeon);
+    group.add(ringMesh);
+
+    // Ground Hologram
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+    const ringFloor = new THREE.Mesh(new THREE.RingGeometry(12, 18, 20), this.materials.playerGoldNeon);
+    ringFloor.rotateX(-Math.PI / 2);
+    holoDisc.add(ringFloor);
+    group.add(holoDisc);
+  }
+
+  private build3DCashStack(group: THREE.Group) {
+    // 1. Stacked Physical Nano-Polymer Banknotes
+    const chipGeo = new THREE.BoxGeometry(18, 9.5, 13);
+    const chipMat = new THREE.MeshStandardMaterial({
+      color: 0x00ff66,
+      emissive: 0x00ff66,
+      emissiveIntensity: 1.5,
+      roughness: 0.25,
+      metalness: 0.7,
+    });
+    const chipMesh = new THREE.Mesh(chipGeo, chipMat);
+    group.add(chipMesh);
+
+    // 2. Glowing Holographic Security Band
+    const bandGeo = new THREE.BoxGeometry(18.5, 9.8, 3.8);
+    const bandMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffd1,
+      wireframe: true,
+    });
+    const bandMesh = new THREE.Mesh(bandGeo, bandMat);
+    group.add(bandMesh);
+
+    // Ground Hologram
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+    const ringFloor = new THREE.Mesh(new THREE.RingGeometry(12, 18, 20), this.materials.medkitHoloRingDisc);
+    ringFloor.rotateX(-Math.PI / 2);
+    holoDisc.add(ringFloor);
+    group.add(holoDisc);
+  }
+
+  private build3DPowerupNode(group: THREE.Group, type: CollectibleType) {
+    if (type === 'SHIELD_NODE') {
+      // Kinetic Energy Shield Emitter
+      const baseGeo = new THREE.CylinderGeometry(6, 8, 3, 6);
+      const baseMesh = new THREE.Mesh(baseGeo, this.materials.cyborgTitaniumPlate);
+      group.add(baseMesh);
+
+      // Rotating Hexagonal Energy Barrier
+      const shieldHex = new THREE.Mesh(new THREE.CylinderGeometry(11, 11, 1.2, 6), this.materials.labNeonCyan);
+      shieldHex.name = 'shieldHexMesh';
+      shieldHex.position.y = 6;
+      group.add(shieldHex);
+    } else if (type === 'OVERDRIVE_CELL') {
+      // Cybernetic Adrenaline Overdrive Canister
+      const canGeo = new THREE.CylinderGeometry(5, 5, 18, 12);
+      const canMesh = new THREE.Mesh(canGeo, this.materials.playerMagentaNeon);
+      group.add(canMesh);
+
+      const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 3, 12), this.materials.weaponTitaniumPlate);
+      cap1.position.y = 9;
+      group.add(cap1);
+
+      const cap2 = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 3, 12), this.materials.weaponTitaniumPlate);
+      cap2.position.y = -9;
+      group.add(cap2);
+    } else {
+      // Standard / Chrono Powerup Crystal
+      const itemGeo = new THREE.OctahedronGeometry(12, 0);
+      const itemMat = type === 'CHRONO_CRYSTAL'
+        ? this.materials.labNeonCyan
+        : this.materials.bioCoreCrystal;
+      const itemMesh = new THREE.Mesh(itemGeo, itemMat);
+      group.add(itemMesh);
+
+      const ringGeo = new THREE.TorusGeometry(16, 1.2, 8, 20);
+      const ringMesh = new THREE.Mesh(ringGeo, itemMat);
+      ringMesh.rotation.x = Math.PI / 4;
+      group.add(ringMesh);
+    }
+
+    // Ground Hologram
+    const holoDisc = new THREE.Group();
+    holoDisc.name = 'groundHoloDisc';
+    holoDisc.position.y = -15;
+    const ringFloor = new THREE.Mesh(new THREE.RingGeometry(11, 16, 18), this.materials.labNeonCyan);
+    ringFloor.rotateX(-Math.PI / 2);
+    holoDisc.add(ringFloor);
+    group.add(holoDisc);
+  }
+
   // --- 3D COLLECTIBLES & ENCRYPTED BIO-CORES ---
   private update3DCollectibles(collectibles: Collectible[]) {
     const activeIds = new Set<number>();
@@ -4836,109 +5883,56 @@ export class ThreeSceneManager {
       if (!group) {
         group = new THREE.Group();
 
-        if (col.type === 'ENCRYPTED_BIO_CORE') {
-          // 3D Octahedron Crystal Core (Super Bright Bloom Emissive)
-          const crystalGeo = new THREE.OctahedronGeometry(18, 0);
-          const crystalMesh = new THREE.Mesh(crystalGeo, this.materials.bioCoreCrystal);
-          group.add(crystalMesh);
-
-          // Concentric Gyro Rings
-          const ringGeo = new THREE.TorusGeometry(24, 1.8, 8, 24);
-          const ring1 = new THREE.Mesh(ringGeo, this.materials.portalRing);
-          ring1.rotation.x = Math.PI / 3;
-          group.add(ring1);
-
-          const ring2 = new THREE.Mesh(ringGeo, this.materials.portalRing);
-          ring2.rotation.y = Math.PI / 3;
-          group.add(ring2);
+        if (col.type === 'ENCRYPTED_BIO_CORE' || col.type === 'CYBER_CORE') {
+          // 3D Floating Mechanical Battery Cell with Visible Circuit Lines & Core Rod
+          this.build3DBioCoreBattery(group, col.coreIndex);
         } else if (col.type === 'BLOOD_PLASMA_CELL') {
-          // Health Pool (သွေးကန်) - Glowing Red Bio-Fluid Pool on Ground & Floating Ruby Core
-          const poolGeo = new THREE.CircleGeometry(22, 16);
-          poolGeo.rotateX(-Math.PI / 2);
-          const poolMat = new THREE.MeshBasicMaterial({
-            color: 0xff0033,
-            transparent: true,
-            opacity: 0.65,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-          });
-          const poolMesh = new THREE.Mesh(poolGeo, poolMat);
-          poolMesh.position.y = -16;
-          poolMesh.name = 'healthPoolDisc';
-          group.add(poolMesh);
-
-          // Floating Ruby Health Core Crystal
-          const orbGeo = new THREE.IcosahedronGeometry(11, 1);
-          const orbMat = new THREE.MeshStandardMaterial({
-            color: 0xff0044,
-            emissive: 0xff0033,
-            emissiveIntensity: 2.2,
-            roughness: 0.1,
-            metalness: 0.8,
-          });
-          const orbMesh = new THREE.Mesh(orbGeo, orbMat);
-          group.add(orbMesh);
-
-          // Health Cross Sign
-          const crossBarH = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 3), this.materials.katanaBladeCore);
-          const crossBarV = new THREE.Mesh(new THREE.BoxGeometry(4, 14, 3), this.materials.katanaBladeCore);
-          group.add(crossBarH);
-          group.add(crossBarV);
+          // 3D Futuristic Tactical Sci-Fi Medical Box with Glowing Neon Cross
+          this.build3DMedkit(group);
+        } else if (col.type === 'WEAPON_TECH_PART' || col.type === 'EXOTIC_WEAPON_DROP') {
+          // 3D Distinct Futuristic Weapon Model on Floor (Rifle, Katana, Pistol, Shotgun, Missiles, Vortex)
+          this.build3DWeaponProp(group, col.weaponDropType);
         } else if (col.type === 'METALLIC_GOLD') {
-          // Tech-Gold / Credits (ရွှေများ) - 3D Gold Ingot / Bullion Bar & Coins
-          const barGeo = new THREE.BoxGeometry(16, 6, 9);
-          const barMesh = new THREE.Mesh(barGeo, this.materials.goldCoin);
-          group.add(barMesh);
-
-          const coinGeo = new THREE.CylinderGeometry(8, 8, 2.5, 8);
-          coinGeo.rotateX(Math.PI / 2);
-          const coinMesh = new THREE.Mesh(coinGeo, this.materials.goldCoin);
-          coinMesh.position.y = 8;
-          group.add(coinMesh);
-
-          const ringGeo = new THREE.TorusGeometry(14, 1.2, 6, 16);
-          const ringMesh = new THREE.Mesh(ringGeo, this.materials.playerGoldNeon);
-          group.add(ringMesh);
+          // 3D Gold Bullion Ingot & Credit Coins
+          this.build3DMetallicGold(group);
         } else if (col.type === 'CASH_STACK') {
-          // Tech Credit Chips & Emerald Cash Stack
-          const chipGeo = new THREE.BoxGeometry(18, 10, 12);
-          const chipMat = new THREE.MeshStandardMaterial({
-            color: 0x00ff66,
-            emissive: 0x00ff66,
-            emissiveIntensity: 1.8,
-            roughness: 0.2,
-            metalness: 0.7,
-          });
-          const chipMesh = new THREE.Mesh(chipGeo, chipMat);
-          group.add(chipMesh);
+          // 3D Nano-Polymer Banknote Stack with Holographic Band
+          this.build3DCashStack(group);
         } else {
-          // Standard / Shield / Overdrive Powerup Crystal
-          const itemGeo = new THREE.OctahedronGeometry(11, 0);
-          const itemMat = col.type === 'OVERDRIVE_CELL'
-            ? this.materials.playerMagentaNeon
-            : col.type === 'SHIELD_NODE'
-            ? this.materials.labNeonCyan
-            : this.materials.bioCoreCrystal;
-          const itemMesh = new THREE.Mesh(itemGeo, itemMat);
-          group.add(itemMesh);
+          // Specialized Powerup Nodes (Shield, Overdrive, Chrono)
+          this.build3DPowerupNode(group, col.type);
         }
 
         this.scene.add(group);
         this.collectibleMeshMap.set(col.id, group);
       }
 
-      // Bobbing & Rotation Animation
-      const bob = Math.sin(this.animTick * 4 + col.id) * 6;
+      // Smooth Hover Bob & Rotation Animation
+      const bob = Math.sin(this.animTick * 3.5 + col.id) * 5.0;
       group.position.set(cx, 16 + bob, cz);
-      group.rotation.y += 0.045;
-      group.rotation.x = Math.sin(this.animTick * 2) * 0.15;
+      group.rotation.y += 0.038;
+      group.rotation.x = Math.sin(this.animTick * 1.8 + col.id) * 0.08;
 
-      const healthPoolDisc = group.getObjectByName('healthPoolDisc') as THREE.Mesh | undefined;
-      if (healthPoolDisc) {
-        // Keep health pool liquid grounded and pulse radius
-        healthPoolDisc.position.y = -15 - bob;
-        const poolPulse = 1.0 + Math.sin(this.animTick * 6 + col.id) * 0.18;
-        healthPoolDisc.scale.set(poolPulse, poolPulse, poolPulse);
+      // Animate Battery Gyro Rings
+      const gyro1 = group.getObjectByName('batteryGyroRing1');
+      if (gyro1) gyro1.rotation.z += 0.045;
+      const gyro2 = group.getObjectByName('batteryGyroRing2');
+      if (gyro2) gyro2.rotation.z -= 0.045;
+
+      // Animate Quantum Core Singularity Ring
+      const qRing = group.getObjectByName('quantumCoreRing');
+      if (qRing) qRing.rotation.z += 0.06;
+
+      // Animate Shield Hex Node
+      const shieldHex = group.getObjectByName('shieldHexMesh');
+      if (shieldHex) shieldHex.rotation.y += 0.05;
+
+      // Keep Ground Holographic Pedestal / Aura Disc Grounded & Pulsing
+      const groundHoloDisc = group.getObjectByName('groundHoloDisc');
+      if (groundHoloDisc) {
+        groundHoloDisc.position.y = -15 - bob;
+        const discPulse = 1.0 + Math.sin(this.animTick * 5.5 + col.id) * 0.14;
+        groundHoloDisc.scale.set(discPulse, 1, discPulse);
       }
     }
 
@@ -5002,6 +5996,309 @@ export class ThreeSceneManager {
       if (!activeIds.has(id)) {
         this.scene.remove(group);
         this.laserMeshMap.delete(id);
+      }
+    }
+  }
+
+  // --- 3D EXPLOSION BLAST CRATER HAZARDS: HIGH-PERFORMANCE COMBAT IMPACT ZONE ---
+  private update3DPits(chunks: GridMapChunk[] = [], player: Player) {
+    const px = player.position.x;
+    const pz = player.position.y;
+    const renderDist = 1300;
+    const visibleIds = new Set<string>();
+
+    for (const chunk of chunks) {
+      if (
+        Math.abs(chunk.worldX + chunk.pixelSize / 2 - px) > renderDist + 400 ||
+        Math.abs(chunk.worldY + chunk.pixelSize / 2 - pz) > renderDist + 400
+      ) {
+        continue;
+      }
+
+      for (let tx = 0; tx < chunk.chunkSize; tx++) {
+        for (let ty = 0; ty < chunk.chunkSize; ty++) {
+          const tile = chunk.tiles[tx]?.[ty];
+          if (!tile) continue;
+          if (!tile.isPitHazard && tile.type !== 'BROKEN_FLOOR' && tile.type !== 'CHASM_VOID') {
+            continue;
+          }
+
+          const wx = chunk.worldX + tx * chunk.tileSize + chunk.tileSize / 2;
+          const wz = chunk.worldY + ty * chunk.tileSize + chunk.tileSize / 2;
+
+          const dx = wx - px;
+          const dz = wz - pz;
+          if (Math.abs(dx) > renderDist || Math.abs(dz) > renderDist) {
+            continue;
+          }
+
+          const pitId = `pit_${chunk.chunkX}_${chunk.chunkY}_${tx}_${ty}`;
+          visibleIds.add(pitId);
+
+          let group = this.pitMeshMap.get(pitId);
+          if (!group) {
+            group = new THREE.Group();
+            group.position.set(wx, 0, wz);
+
+            const ts = chunk.tileSize; // 50px
+            const isBroken = tile.type === 'BROKEN_FLOOR';
+            const seed = Math.abs(Math.sin(chunk.chunkX * 127.1 + chunk.chunkY * 311.7 + tx * 269.5 + ty * 183.3));
+
+            // 1. EXPLOSION BLAST SCORCH & RADIAL FRACTURE DECAL (Fast 2D Decal Plane on Road)
+            const decalSize = ts * 1.6;
+            const decalGeo = new THREE.PlaneGeometry(decalSize, decalSize);
+            decalGeo.rotateX(-Math.PI / 2);
+            const decalMesh = new THREE.Mesh(decalGeo, this.materials.craterBlastDecal);
+            decalMesh.position.y = 0.22;
+            decalMesh.rotation.y = seed * Math.PI * 2;
+            group.add(decalMesh);
+
+            // 2. CIRCULAR / OVAL BLAST IMPACT CRATER CENTER (10-Point Harmonic Circular Rim)
+            const numPts = 10;
+            const perimeterPts: THREE.Vector2[] = [];
+            const radiusBase = ts * 0.42;
+
+            for (let i = 0; i < numPts; i++) {
+              const theta = (i / numPts) * Math.PI * 2;
+              const rNoise =
+                Math.sin(theta * 3 + seed * 12.3) * (ts * 0.08) +
+                Math.cos(theta * 4 + seed * 23.7) * (ts * 0.04);
+              const r = Math.max(ts * 0.32, Math.min(ts * 0.49, radiusBase + rNoise));
+              perimeterPts.push(new THREE.Vector2(Math.cos(theta) * r, Math.sin(theta) * r));
+            }
+
+            // Central Blown-Out Floor Mask
+            const shape = new THREE.Shape();
+            shape.moveTo(perimeterPts[0].x, perimeterPts[0].y);
+            for (let i = 1; i < numPts; i++) {
+              shape.lineTo(perimeterPts[i].x, perimeterPts[i].y);
+            }
+            shape.closePath();
+
+            const maskGeo = new THREE.ShapeGeometry(shape);
+            maskGeo.rotateX(-Math.PI / 2);
+            const maskMesh = new THREE.Mesh(maskGeo, this.materials.chasmFloorMask);
+            maskMesh.position.y = 0.35;
+            group.add(maskMesh);
+
+            // 3. LOW-POLY CRATER CAVITY WALLS (20 Triangles Total)
+            const wallH = 120;
+            const wallPositions: number[] = [];
+            const wallUVs: number[] = [];
+            const wallNormals: number[] = [];
+
+            for (let i = 0; i < numPts; i++) {
+              const nextI = (i + 1) % numPts;
+              const pA = perimeterPts[i];
+              const pB = perimeterPts[nextI];
+
+              const topAx = pA.x;
+              const topAy = 0.35;
+              const topAz = pA.y;
+
+              const topBx = pB.x;
+              const topBy = 0.35;
+              const topBz = pB.y;
+
+              // Bottom points taper inward (0.8x) simulating blast cone
+              const botBx = pB.x * 0.8;
+              const botBy = -wallH;
+              const botBz = pB.y * 0.8;
+
+              const botAx = pA.x * 0.8;
+              const botAy = -wallH;
+              const botAz = pA.y * 0.8;
+
+              const u0 = i / numPts;
+              const u1 = (i + 1) / numPts;
+
+              // Triangle 1 (topA -> topB -> botB)
+              wallPositions.push(topAx, topAy, topAz, topBx, topBy, topBz, botBx, botBy, botBz);
+              wallUVs.push(u0, 0, u1, 0, u1, 1);
+
+              // Triangle 2 (topA -> botB -> botA)
+              wallPositions.push(topAx, topAy, topAz, botBx, botBy, botBz, botAx, botAy, botAz);
+              wallUVs.push(u0, 0, u1, 1, u0, 1);
+
+              const edge1 = new THREE.Vector3(topBx - topAx, topBy - topAy, topBz - topAz);
+              const edge2 = new THREE.Vector3(botBx - topAx, botBy - topAy, botBz - topAz);
+              const norm = new THREE.Vector3().crossVectors(edge1, edge2).normalize();
+
+              for (let v = 0; v < 6; v++) {
+                wallNormals.push(norm.x, norm.y, norm.z);
+              }
+            }
+
+            const wallGeo = new THREE.BufferGeometry();
+            wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wallPositions, 3));
+            wallGeo.setAttribute('uv', new THREE.Float32BufferAttribute(wallUVs, 2));
+            wallGeo.setAttribute('normal', new THREE.Float32BufferAttribute(wallNormals, 3));
+
+            const wallMesh = new THREE.Mesh(wallGeo, this.materials.chasmCrackedConcrete);
+            group.add(wallMesh);
+
+            // 4. PITCH-BLACK ABYSS BOTTOM CAP
+            const bottomGeo = new THREE.CircleGeometry(ts * 0.44, 8);
+            bottomGeo.rotateX(-Math.PI / 2);
+            const bottomMesh = new THREE.Mesh(bottomGeo, this.materials.chasmVoidInterior);
+            bottomMesh.position.y = -wallH + 1;
+            group.add(bottomMesh);
+
+            // 5. TILTED CONCRETE SLABS (Roadway chunks collapsed inward by blast force)
+            const numSlabs = 2;
+            for (let s = 0; s < numSlabs; s++) {
+              const sAngle = (s / numSlabs) * Math.PI * 2 + seed * 3.5;
+              const edgeDist = ts * 0.33;
+              const sx = Math.cos(sAngle) * edgeDist;
+              const sz = Math.sin(sAngle) * edgeDist;
+
+              const slabW = ts * 0.3;
+              const slabL = ts * 0.26;
+              const slabH = 3.0;
+
+              const slabMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(slabW, slabH, slabL),
+                this.materials.chasmBrokenSlab
+              );
+              slabMesh.position.set(sx, -2.0 - s * 1.8, sz);
+              slabMesh.rotation.set(
+                Math.sin(sAngle) * 0.35 + 0.1,
+                sAngle + 0.2,
+                -Math.cos(sAngle) * 0.35
+              );
+              group.add(slabMesh);
+            }
+
+            // 6. EXPOSED STEEL REBAR RODS WITH GLOWING HEAT EMBERS
+            const numRebars = 2;
+            for (let r = 0; r < numRebars; r++) {
+              const rAngle = (r / numRebars) * Math.PI + seed * 2.5;
+              const rx = Math.cos(rAngle) * (ts * 0.38);
+              const rz = Math.sin(rAngle) * (ts * 0.38);
+
+              const rebarLen = 13;
+              const rebarGeo = new THREE.CylinderGeometry(0.7, 0.7, rebarLen, 4);
+              rebarGeo.translate(0, rebarLen / 2, 0);
+
+              const rebarMesh = new THREE.Mesh(rebarGeo, this.materials.chasmExposedRebar);
+              rebarMesh.position.set(rx, -1.8, rz);
+
+              const inwardAngle = Math.atan2(-rz, -rx);
+              rebarMesh.rotation.set(0.35, inwardAngle, Math.PI / 2 - 0.2);
+              group.add(rebarMesh);
+
+              const tipX = rx + Math.cos(inwardAngle) * (rebarLen * 0.85);
+              const tipZ = rz + Math.sin(inwardAngle) * (rebarLen * 0.85);
+              const tipMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(1.1, 4, 4),
+                this.materials.chasmRebarTipGlow
+              );
+              tipMesh.position.set(tipX, -4.0, tipZ);
+              group.add(tipMesh);
+            }
+
+            // 7. BLAST RUBBLE & CONCRETE DEBRIS SCATTERED AROUND CRATER RIM
+            const numRubble = 5;
+            for (let b = 0; b < numRubble; b++) {
+              const bAngle = (b / numRubble) * Math.PI * 2 + seed * 4.2;
+              const bDist = ts * (0.38 + ((b * 0.08 + seed) % 0.18));
+              const bx = Math.cos(bAngle) * bDist;
+              const bz = Math.sin(bAngle) * bDist;
+
+              const rSize = 2.2 + (b % 3) * 1.2;
+              const rubbleMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(rSize, rSize * 0.65, rSize),
+                this.materials.chasmConcreteRubble
+              );
+              rubbleMesh.position.set(bx, 0.5, bz);
+              rubbleMesh.rotation.set((b * 1.2) % 3, (b * 2.1) % 3, 0.35);
+              group.add(rubbleMesh);
+            }
+
+            // 8. RISING SMOKE & BLAST DUST PARTICLES (8 lightweight particles)
+            const dustCount = 8;
+            const dustPositions = new Float32Array(dustCount * 3);
+            const dustSpeeds = new Float32Array(dustCount);
+            const dustPhases = new Float32Array(dustCount);
+            const dustBaseX = new Float32Array(dustCount);
+            const dustBaseZ = new Float32Array(dustCount);
+
+            for (let d = 0; d < dustCount; d++) {
+              const dAngle = (d / dustCount) * Math.PI * 2 + seed;
+              const dRad = (ts * 0.32) * (0.3 + (d % 3) * 0.25);
+              const dx = Math.cos(dAngle) * dRad;
+              const dz = Math.sin(dAngle) * dRad;
+              const dy = -35 + (d * 7);
+
+              dustBaseX[d] = dx;
+              dustBaseZ[d] = dz;
+              dustSpeeds[d] = 0.4 + (d % 3) * 0.2;
+              dustPhases[d] = d * 1.3;
+
+              dustPositions[d * 3] = dx;
+              dustPositions[d * 3 + 1] = dy;
+              dustPositions[d * 3 + 2] = dz;
+            }
+
+            const dustGeo = new THREE.BufferGeometry();
+            dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+
+            const dustPoints = new THREE.Points(dustGeo, this.materials.chasmDustParticleMat);
+            group.add(dustPoints);
+
+            group.userData = {
+              dustGeo,
+              dustPositions,
+              dustSpeeds,
+              dustPhases,
+              dustBaseX,
+              dustBaseZ,
+              dustCount,
+            };
+
+            this.scene.add(group);
+            this.pitMeshMap.set(pitId, group);
+          } else {
+            // Animate rising smoke/dust for nearby craters within camera view
+            const distSq = dx * dx + dz * dz;
+            if (distSq < 722500) {
+              const uData = group.userData;
+              if (uData && uData.dustPositions && uData.dustGeo) {
+                const pos = uData.dustPositions;
+                const count = uData.dustCount;
+                const speeds = uData.dustSpeeds;
+                const phases = uData.dustPhases;
+                const baseXs = uData.dustBaseX;
+                const baseZs = uData.dustBaseZ;
+
+                for (let d = 0; d < count; d++) {
+                  let y = pos[d * 3 + 1] + speeds[d] * 0.65;
+                  if (y > 12) {
+                    y = -40;
+                  }
+                  pos[d * 3 + 1] = y;
+                  pos[d * 3] = baseXs[d] + Math.sin(this.animTick * 1.5 + phases[d]) * 2.2;
+                  pos[d * 3 + 2] = baseZs[d] + Math.cos(this.animTick * 1.2 + phases[d]) * 2.2;
+                }
+                uData.dustGeo.attributes.position.needsUpdate = true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // High-performance cleanup & geometry disposal for culled pits
+    for (const [id, group] of this.pitMeshMap.entries()) {
+      if (!visibleIds.has(id)) {
+        group.traverse((obj) => {
+          const m = obj as THREE.Mesh;
+          if (m.isMesh || (obj as THREE.Points).isPoints) {
+            if (m.geometry) m.geometry.dispose();
+          }
+        });
+        this.scene.remove(group);
+        this.pitMeshMap.delete(id);
       }
     }
   }
@@ -5193,11 +6490,15 @@ export class ThreeSceneManager {
     settings: GameSettings
   ) {
     const ctx = this.overlayCtx;
-    const W = this.overlayCanvas.width;
-    const H = this.overlayCanvas.height;
+    const dpr = this.renderer.getPixelRatio() || 1;
+    const W = this.overlayCanvas.width / dpr;
+    const H = this.overlayCanvas.height / dpr;
 
-    // Clear 2D overlay
-    ctx.clearRect(0, 0, W, H);
+    // Clear 2D overlay at native pixel resolution
+    ctx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
 
     // --- PRO AI EXECUTIONER VIGNETTE & COGNITIVE PRESSURE OVERLAY ---
     const pressure = proCombatAI.cognitivePressureIntensity;
@@ -5342,6 +6643,125 @@ export class ThreeSceneManager {
     if (speedrunDelta.hasGhost) {
       this.renderSpeedrunDeltaBadge2D(ctx, W, H, speedrunDelta);
     }
+
+    // 6. BOTTOMLESS CHASM VOID FALL ALERT & VORTEX DESCENT
+    if (player.isFallingIntoAbyss || player.actionState === 'FALLING_INTO_VOID') {
+      ctx.save();
+      const fallProg = Math.min(1.0, (40 - (player.fallingTimer || 0)) / 40);
+
+      // Expanding deep red-purple abyss singularity vortex
+      const vortexGrad = ctx.createRadialGradient(
+        W / 2,
+        H / 2,
+        Math.max(10, Math.min(W, H) * 0.05),
+        W / 2,
+        H / 2,
+        Math.max(W, H) * (0.3 + fallProg * 0.5)
+      );
+      vortexGrad.addColorStop(0, `rgba(255, 0, 85, ${0.4 * (1 - fallProg)})`);
+      vortexGrad.addColorStop(0.6, `rgba(18, 0, 36, ${0.75 * fallProg})`);
+      vortexGrad.addColorStop(1.0, `rgba(0, 0, 0, ${0.92 * fallProg})`);
+      ctx.fillStyle = vortexGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Responsive Dynamic Font Scaling for Mobile & Desktop
+      const titleFontSize = Math.max(10, Math.min(16, Math.floor(W * 0.032)));
+      const subFontSize = Math.max(8.5, Math.min(11, Math.floor(W * 0.022)));
+      const isCompactMobile = W < 500;
+
+      // Holographic Warning Badge Frame
+      const boxW = Math.min(W * 0.88, 480);
+      const boxH = isCompactMobile ? 48 : 56;
+      const boxX = (W - boxW) / 2;
+      const boxY = H / 2 - boxH / 2;
+
+      ctx.fillStyle = 'rgba(6, 2, 14, 0.88)';
+      ctx.strokeStyle = 'rgba(255, 0, 85, 0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#FF0055';
+      ctx.shadowBlur = 12;
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+
+      // Warning text with mobile line fit
+      ctx.font = `900 ${titleFontSize}px "Orbitron", monospace`;
+      ctx.fillStyle = '#FF0055';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#FF0055';
+      ctx.shadowBlur = 14;
+      const titleText = isCompactMobile
+        ? '⚠️ CRITICAL PITFALL // CHASM COLLAPSE'
+        : '⚠️ CRITICAL PITFALL // BOTTOMLESS CHASM COLLAPSE';
+      ctx.fillText(titleText, W / 2, boxY + (isCompactMobile ? 18 : 22));
+
+      ctx.font = `bold ${subFontSize}px "Orbitron", monospace`;
+      ctx.fillStyle = '#00FFD1';
+      ctx.shadowColor = '#00FFD1';
+      ctx.shadowBlur = 8;
+      ctx.fillText('RESTORING RUN SYSTEM STATE...', W / 2, boxY + (isCompactMobile ? 36 : 42));
+      ctx.restore();
+    }
+
+    // 7. ATMOSPHERIC ROUNDED VIEWPORT & CURVED CORNER VIGNETTE
+    // Generates a soft rounded CRT/anamorphic lens curve and dark peripheral falloff
+    ctx.save();
+    const cornerRadius = Math.min(36, Math.min(W, H) * 0.05);
+    const borderThickness = 6;
+    
+    // Ambient dark peripheral vignette
+    const ambientVig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.72);
+    ambientVig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    ambientVig.addColorStop(0.7, 'rgba(4, 2, 10, 0.25)');
+    ambientVig.addColorStop(1.0, 'rgba(2, 1, 6, 0.72)');
+    ctx.fillStyle = ambientVig;
+    ctx.fillRect(0, 0, W, H);
+
+    // Rounded outer screen border with high-tech corner brackets
+    ctx.strokeStyle = 'rgba(0, 255, 209, 0.16)';
+    ctx.lineWidth = borderThickness;
+    ctx.beginPath();
+    ctx.roundRect(borderThickness / 2, borderThickness / 2, W - borderThickness, H - borderThickness, cornerRadius);
+    ctx.stroke();
+
+    // Curved Corner Tech Accents
+    const bracketLen = 28;
+    ctx.strokeStyle = '#00FFD1';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00FFD1';
+    ctx.shadowBlur = 6;
+
+    // Top-Left
+    ctx.beginPath();
+    ctx.moveTo(12, 12 + bracketLen);
+    ctx.lineTo(12, 12);
+    ctx.lineTo(12 + bracketLen, 12);
+    ctx.stroke();
+
+    // Top-Right
+    ctx.beginPath();
+    ctx.moveTo(W - 12 - bracketLen, 12);
+    ctx.lineTo(W - 12, 12);
+    ctx.lineTo(W - 12, 12 + bracketLen);
+    ctx.stroke();
+
+    // Bottom-Left
+    ctx.beginPath();
+    ctx.moveTo(12, H - 12 - bracketLen);
+    ctx.lineTo(12, H - 12);
+    ctx.lineTo(12 + bracketLen, H - 12);
+    ctx.stroke();
+
+    // Bottom-Right
+    ctx.beginPath();
+    ctx.moveTo(W - 12 - bracketLen, H - 12);
+    ctx.lineTo(W - 12, H - 12);
+    ctx.lineTo(W - 12, H - 12 - bracketLen);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Complete CSS scaling block
+    ctx.restore();
   }
 
   private renderRadarMinimap2D(
@@ -5564,10 +6984,10 @@ export class ThreeSceneManager {
     const isNear = beat.isNearBeat;
     ctx.save();
 
-    const barWidth = 240;
-    const barHeight = 16;
+    const barWidth = Math.min(Math.max(W * 0.35, 180), 240);
+    const barHeight = 15;
     const cx = W / 2;
-    const cy = H - 52;
+    const cy = H - Math.max(38, H * 0.08);
 
     ctx.fillStyle = 'rgba(10, 15, 29, 0.85)';
     ctx.strokeStyle = isNear ? '#00FFD1' : 'rgba(255, 255, 255, 0.2)';
@@ -5609,12 +7029,12 @@ export class ThreeSceneManager {
   private renderSpeedrunDeltaBadge2D(
     ctx: CanvasRenderingContext2D,
     W: number,
-    _H: number,
+    H: number,
     delta: SpeedrunDeltaInfo
   ) {
     ctx.save();
-    const x = W - 140;
-    const y = 84;
+    const x = Math.min(W - 75, W * 0.85);
+    const y = Math.max(76, H * 0.12);
 
     const isAhead = delta.status === 'AHEAD';
     const borderColor = isAhead ? '#00FF66' : delta.status === 'BEHIND' ? '#FF0055' : '#00FFD1';
@@ -5642,10 +7062,24 @@ export class ThreeSceneManager {
     this.renderer.setSize(width, height, false);
     this.composer.setSize(width, height);
     this.bloomPass.setSize(width * dpr, height * dpr);
-    this.camera.aspect = width / height;
+
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+
+    // Dynamic Adaptive FOV for mobile landscapes (16:9, 19.5:9, 20:9, 21:9) and compact screens
+    const baseFov = 65;
+    const targetAspect = 16 / 9;
+    if (aspect < targetAspect) {
+      // Narrower screen (portrait or tablet): increase FOV dynamically to preserve playable horizontal battlefield
+      const hFov = 2 * Math.atan(Math.tan((baseFov * Math.PI) / 360) * targetAspect);
+      this.camera.fov = (2 * Math.atan(Math.tan(hFov / 2) / aspect) * 180) / Math.PI;
+    } else {
+      // Standard or Ultra-wide mobile landscape
+      this.camera.fov = baseFov;
+    }
     this.camera.updateProjectionMatrix();
 
-    this.overlayCanvas.width = width * dpr;
-    this.overlayCanvas.height = height * dpr;
+    this.overlayCanvas.width = Math.floor(width * dpr);
+    this.overlayCanvas.height = Math.floor(height * dpr);
   }
 }

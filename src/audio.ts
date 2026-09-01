@@ -1924,6 +1924,314 @@ class SoundSynthesizer {
       osc.stop(t + 0.32);
     } catch {}
   }
+
+  /** Abyss / Pit Fall Sound Effect (Falling slide into deep neon void) */
+  public playPitFall() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // Downward screaming whistle oscillator
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(480, t);
+      osc.frequency.exponentialRampToValueAtTime(30, t + 0.65);
+      gain.gain.setValueAtTime(0.45, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.68);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.68);
+
+      // Deep sub-bass vortex rumble
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(90, t);
+      subOsc.frequency.exponentialRampToValueAtTime(18, t + 0.7);
+      subGain.gain.setValueAtTime(0.5, t);
+      subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+      subOsc.connect(subGain);
+      subGain.connect(this.sfxGain);
+      subOsc.start(t);
+      subOsc.stop(t + 0.7);
+    } catch {}
+  }
+
+  /** Daily Mission Completion Celebratory Cyber-Synth Arpeggio */
+  public playDailyMissionComplete() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // 4-Note triumphant Cyber Arpeggio (C5 -> E5 -> G5 -> C6)
+      const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      freqs.forEach((freq, idx) => {
+        const noteTime = t + idx * 0.08;
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, noteTime);
+
+        gain.gain.setValueAtTime(0.35, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.35);
+      });
+
+      // Shimmering High Harmonic Chime
+      const shimmer = this.ctx.createOscillator();
+      const shimmerGain = this.ctx.createGain();
+      shimmer.type = 'sine';
+      shimmer.frequency.setValueAtTime(2093.00, t + 0.32);
+      shimmer.frequency.exponentialRampToValueAtTime(2637.02, t + 0.85);
+      shimmerGain.gain.setValueAtTime(0.2, t + 0.32);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+      shimmer.connect(shimmerGain);
+      shimmerGain.connect(this.sfxGain);
+      shimmer.start(t + 0.32);
+      shimmer.stop(t + 0.85);
+    } catch {}
+  }
+
+  /** Daily Mission Step Incremented / Progress Blip */
+  public playDailyMissionProgress() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(1320, t + 0.09);
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    } catch {}
+  }
+
+  /** Bacterial Pit Ranged Splash / Toxic Acid Fluid Projectile Spit SFX */
+  public playToxicAcidSpit() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // 1. Wet organic acid bubble squirt (Frequency modulated downward squelch)
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(560, t);
+      osc.frequency.exponentialRampToValueAtTime(140, t + 0.18);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(800, t);
+      filter.Q.setValueAtTime(3.5, t);
+
+      gain.gain.setValueAtTime(0.38, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(t);
+      osc.stop(t + 0.22);
+
+      // 2. High bubbling acid sizzle noise burst
+      const noiseBuffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.12), this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < output.length; i++) {
+        output[i] = (Math.random() * 2 - 1) * 0.5;
+      }
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'highpass';
+      noiseFilter.frequency.setValueAtTime(1200, t);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.22, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+
+      noiseSource.start(t);
+      noiseSource.stop(t + 0.14);
+    } catch {}
+  }
+
+  /** Ineffective Repetitive Button Mash Penalty: Dull blunted metallic thud / dissipation */
+  public playBluntMashPenalty() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // 1. Low pitched dull thud
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(110, t);
+      osc.frequency.exponentialRampToValueAtTime(45, t + 0.14);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.16);
+
+      // 2. Muffled clunk noise
+      const buffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 0.08), this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.4;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(400, t);
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.3, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+      noise.start(t);
+      noise.stop(t + 0.09);
+    } catch {}
+  }
+
+  /** Dynamic Rotating Combo Step 2: Harmonic Rising Synth Pulse */
+  public playComboBridge() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, t);
+      osc.frequency.exponentialRampToValueAtTime(740, t + 0.14);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(900, t);
+      filter.Q.setValueAtTime(3.0, t);
+
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(t);
+      osc.stop(t + 0.16);
+    } catch {}
+  }
+
+  /** Dynamic Rotating Combo Finisher: Maximum Critical Nano-Burst Explosion & Synth Climax */
+  public playCriticalFinisher() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // 1. Heavy resonant sub-bass drop
+      const bassOsc = this.ctx.createOscillator();
+      const bassGain = this.ctx.createGain();
+      bassOsc.type = 'sine';
+      bassOsc.frequency.setValueAtTime(280, t);
+      bassOsc.frequency.exponentialRampToValueAtTime(35, t + 0.45);
+      bassGain.gain.setValueAtTime(0.65, t);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+      bassOsc.connect(bassGain);
+      bassGain.connect(this.sfxGain);
+      bassOsc.start(t);
+      bassOsc.stop(t + 0.48);
+
+      // 2. Dual critical synth flare
+      [880, 1320, 1760].forEach((freq, idx) => {
+        if (!this.ctx || !this.sfxGain) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t + idx * 0.04);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, t + idx * 0.04 + 0.22);
+        gain.gain.setValueAtTime(0.25, t + idx * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.04 + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + idx * 0.04);
+        osc.stop(t + idx * 0.04 + 0.26);
+      });
+    } catch {}
+  }
+
+  /** Enemy AI Protective Defensive Block / Barrier Deflection SFX */
+  public playPredictiveBlock() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx || !this.sfxGain) return;
+      const t = this.ctx.currentTime;
+
+      // High-energy magnetic shield ring & pulse
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(980, t);
+      osc.frequency.exponentialRampToValueAtTime(220, t + 0.22);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, t);
+      filter.Q.setValueAtTime(5.0, t);
+
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(t);
+      osc.stop(t + 0.25);
+    } catch {}
+  }
 }
 
 export const sound = new SoundSynthesizer();

@@ -257,11 +257,16 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   return (
     <div
       id="virtual-joystick-hud-layer"
-      className="fixed inset-x-0 bottom-0 pointer-events-none z-30 select-none flex justify-between items-end p-2.5 sm:p-4"
+      style={{
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+      }}
+      className="fixed inset-x-0 bottom-0 pointer-events-none z-30 select-none flex justify-between items-end gap-2"
     >
       {/* 1. Left Section: 360° Tactical Joystick for Walking, Sneaking & Dynamic WASD Feedback */}
       <div className="flex flex-col items-start pointer-events-auto">
-        <div className="mb-1 px-2 py-0.5 bg-[#05030e]/90 border border-[#00FFD1]/40 rounded backdrop-blur-md flex items-center gap-2 font-mono-tech text-[8px] sm:text-[9px] text-[#00FFD1] shadow-[0_0_10px_rgba(0,255,209,0.2)]">
+        <div className="mb-1 px-1.5 sm:px-2 py-0.5 bg-[#05030e]/90 border border-[#00FFD1]/40 rounded backdrop-blur-md flex items-center gap-1.5 sm:gap-2 font-mono-tech text-[8px] sm:text-[9px] text-[#00FFD1] shadow-[0_0_10px_rgba(0,255,209,0.2)]">
           <div className="flex items-center gap-1">
             <Navigation
               size={10}
@@ -281,7 +286,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           </div>
           {isAnyWASDActive && (
             <div className="flex items-center gap-0.5 text-[8px] font-mono-tech font-black text-[#FF00E5] tracking-widest pl-1 border-l border-[#00FFD1]/30">
-              <span>WASD LIVE</span>
+              <span>WASD</span>
             </div>
           )}
         </div>
@@ -294,7 +299,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           onPointerUp={handlePointerUpOrCancel}
           onPointerCancel={handlePointerUpOrCancel}
           onPointerLeave={handlePointerUpOrCancel}
-          className={`relative w-34 h-34 sm:w-38 sm:h-38 touch-none rounded-2xl border ${
+          className={`relative w-28 h-28 xs:w-32 xs:h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 touch-none rounded-2xl border ${
             isActive || isAnyWASDActive
               ? 'border-[#00FFD1]/80 bg-[#00FFD1]/15 shadow-[0_0_20px_rgba(0,255,209,0.35)]'
               : 'border-[#00FFD1]/25 bg-[#05030e]/50 shadow-[0_0_15px_rgba(0,255,209,0.15)]'
@@ -305,7 +310,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           {/* Cardinal WASD Compass Indicator Badges */}
           <div
             id="wasd-indicator-w"
-            className={`absolute top-1.5 inset-x-0 mx-auto w-4 h-4 flex items-center justify-center rounded font-mono-tech font-black text-[9px] transition-all duration-100 ${
+            className={`absolute top-1 inset-x-0 mx-auto w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded font-mono-tech font-black text-[8px] sm:text-[9px] transition-all duration-100 ${
               activeKeys.w
                 ? 'bg-[#FF00E5] text-black shadow-[0_0_12px_#FF00E5] scale-110'
                 : 'bg-[#060312]/80 text-[#00FFD1]/60 border border-[#00FFD1]/30'
@@ -315,7 +320,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           </div>
           <div
             id="wasd-indicator-s"
-            className={`absolute bottom-1.5 inset-x-0 mx-auto w-4 h-4 flex items-center justify-center rounded font-mono-tech font-black text-[9px] transition-all duration-100 ${
+            className={`absolute bottom-1 inset-x-0 mx-auto w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded font-mono-tech font-black text-[8px] sm:text-[9px] transition-all duration-100 ${
               activeKeys.s
                 ? 'bg-[#FF00E5] text-black shadow-[0_0_12px_#FF00E5] scale-110'
                 : 'bg-[#060312]/80 text-[#00FFD1]/60 border border-[#00FFD1]/30'
@@ -325,7 +330,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           </div>
           <div
             id="wasd-indicator-a"
-            className={`absolute left-1.5 inset-y-0 my-auto w-4 h-4 flex items-center justify-center rounded font-mono-tech font-black text-[9px] transition-all duration-100 ${
+            className={`absolute left-1 inset-y-0 my-auto w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded font-mono-tech font-black text-[8px] sm:text-[9px] transition-all duration-100 ${
               activeKeys.a
                 ? 'bg-[#FF00E5] text-black shadow-[0_0_12px_#FF00E5] scale-110'
                 : 'bg-[#060312]/80 text-[#00FFD1]/60 border border-[#00FFD1]/30'
@@ -335,7 +340,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           </div>
           <div
             id="wasd-indicator-d"
-            className={`absolute right-1.5 inset-y-0 my-auto w-4 h-4 flex items-center justify-center rounded font-mono-tech font-black text-[9px] transition-all duration-100 ${
+            className={`absolute right-1 inset-y-0 my-auto w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center rounded font-mono-tech font-black text-[8px] sm:text-[9px] transition-all duration-100 ${
               activeKeys.d
                 ? 'bg-[#FF00E5] text-black shadow-[0_0_12px_#FF00E5] scale-110'
                 : 'bg-[#060312]/80 text-[#00FFD1]/60 border border-[#00FFD1]/30'
@@ -391,7 +396,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
                 transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
                 transition: touchId ? 'none' : 'transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
               }}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center shadow-lg pointer-events-none ${
+              className={`w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center shadow-lg pointer-events-none ${
                 isActive || isAnyWASDActive
                   ? 'border-[#FF00E5] bg-[#FF00E5]/25 shadow-[0_0_15px_#FF00E5]'
                   : 'border-[#00FFD1] bg-[#0A0A0A] shadow-[0_0_10px_rgba(0,255,209,0.35)]'
@@ -417,8 +422,8 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
           </div>
 
           {!isActive && !isAnyWASDActive && (
-            <div className="absolute inset-x-0 bottom-6 text-center pointer-events-none">
-              <span className="text-[7px] sm:text-[8px] uppercase font-mono-tech tracking-wider text-[#00FFD1]/70 bg-[#05030e]/80 px-1.5 py-0.5 border border-[#00FFD1]/20">
+            <div className="absolute inset-x-0 bottom-4 text-center pointer-events-none">
+              <span className="text-[7px] uppercase font-mono-tech tracking-wider text-[#00FFD1]/70 bg-[#05030e]/80 px-1 py-0.5 border border-[#00FFD1]/20">
                 TACTICAL MOVE
               </span>
             </div>
@@ -427,20 +432,20 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
       </div>
 
       {/* 2. Right Section: Clean, Ergonomic Tactical Stealth Control Cluster */}
-      <div className="flex flex-col items-end gap-1.5 pointer-events-auto">
+      <div className="flex flex-col items-end gap-1 sm:gap-1.5 pointer-events-auto">
         {/* Upper Action Row: CROUCH (Sneak) + COVER (Hide) */}
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
           {/* CROUCH / SNEAK BUTTON */}
           <button
             id="btn-action-crouch"
             type="button"
             onPointerDown={handleActionClick(onCrouch)}
-            onClick={handleActionClick(onCrouch)}
+            onTouchStart={handleActionClick(onCrouch)}
             aria-label="Crouch"
-            className="px-3 py-1.5 rounded-xl border border-[#00FFD1]/60 bg-[#060312]/90 hover:bg-[#00FFD1]/20 active:bg-[#00FFD1] text-[#00FFD1] active:text-black flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer touch-manipulation shadow-[0_0_12px_rgba(0,255,209,0.3)] backdrop-blur-md"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-[#00FFD1]/60 bg-[#060312]/90 hover:bg-[#00FFD1]/20 active:bg-[#00FFD1] text-[#00FFD1] active:text-black flex items-center gap-1 sm:gap-1.5 transition-transform active:scale-95 cursor-pointer touch-manipulation shadow-[0_0_12px_rgba(0,255,209,0.3)] backdrop-blur-md select-none"
           >
-            <EyeOff size={14} className="text-[#00FFD1]" />
-            <span className="text-[9px] font-mono-tech font-bold tracking-wider uppercase">
+            <EyeOff size={13} className="text-[#00FFD1]" />
+            <span className="text-[8.5px] sm:text-[9px] font-mono-tech font-bold tracking-wider uppercase">
               CROUCH
             </span>
           </button>
@@ -450,30 +455,30 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
             id="btn-action-cover"
             type="button"
             onPointerDown={handleActionClick(onCover)}
-            onClick={handleActionClick(onCover)}
+            onTouchStart={handleActionClick(onCover)}
             aria-label="Take Cover"
-            className="px-3 py-1.5 rounded-xl border border-[#0088FF]/60 bg-[#060312]/90 hover:bg-[#0088FF]/20 active:bg-[#0088FF] text-[#0088FF] active:text-white flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer touch-manipulation shadow-[0_0_12px_rgba(0,136,255,0.3)] backdrop-blur-md"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-[#0088FF]/60 bg-[#060312]/90 hover:bg-[#0088FF]/20 active:bg-[#0088FF] text-[#0088FF] active:text-white flex items-center gap-1 sm:gap-1.5 transition-transform active:scale-95 cursor-pointer touch-manipulation shadow-[0_0_12px_rgba(0,136,255,0.3)] backdrop-blur-md select-none"
           >
-            <Shield size={14} className="text-[#0088FF]" />
-            <span className="text-[9px] font-mono-tech font-bold tracking-wider uppercase">
+            <Shield size={13} className="text-[#0088FF]" />
+            <span className="text-[8.5px] sm:text-[9px] font-mono-tech font-bold tracking-wider uppercase">
               COVER
             </span>
           </button>
         </div>
 
         {/* Lower Main Tactical Grid: BLAST, STEALTH KILL / SLASH, DASH */}
-        <div className="grid grid-cols-3 gap-2 items-center">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* 1. BLAST (Plasma Blaster) */}
           <button
             id="btn-action-blast"
             type="button"
             onPointerDown={handleActionClick(onShoot)}
-            onClick={handleActionClick(onShoot)}
+            onTouchStart={handleActionClick(onShoot)}
             aria-label="Blast"
-            className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 border-[#FFE600] bg-[#090614]/95 hover:bg-[#FFE600]/20 active:bg-[#FFE600] text-[#FFE600] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_16px_rgba(255,230,0,0.35)] backdrop-blur-md"
+            className="w-11 h-11 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-[#FFE600] bg-[#090614]/95 hover:bg-[#FFE600]/20 active:bg-[#FFE600] text-[#FFE600] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_16px_rgba(255,230,0,0.35)] backdrop-blur-md select-none"
           >
-            <Crosshair size={18} className="drop-shadow-[0_0_6px_#FFE600]" />
-            <span className="text-[7.5px] sm:text-[8px] font-mono-tech font-bold uppercase tracking-wider leading-none mt-1">
+            <Crosshair size={16} className="drop-shadow-[0_0_6px_#FFE600]" />
+            <span className="text-[7px] sm:text-[8px] font-mono-tech font-bold uppercase tracking-wider leading-none mt-0.5">
               BLAST
             </span>
           </button>
@@ -483,15 +488,15 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
             id="btn-action-slash"
             type="button"
             onPointerDown={handleActionClick(onStealthTakedown || onSlash)}
-            onClick={handleActionClick(onStealthTakedown || onSlash)}
+            onTouchStart={handleActionClick(onStealthTakedown || onSlash)}
             aria-label="Stealth Takedown / Slash"
-            className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl border-2 border-[#00FFD1] bg-[#061018]/95 hover:bg-[#00FFD1]/20 active:bg-[#00FFD1] text-[#00FFD1] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_24px_rgba(0,255,209,0.5)] backdrop-blur-md"
+            className="w-14 h-14 xs:w-15 xs:h-15 sm:w-17 sm:h-17 rounded-2xl border-2 border-[#00FFD1] bg-[#061018]/95 hover:bg-[#00FFD1]/20 active:bg-[#00FFD1] text-[#00FFD1] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_24px_rgba(0,255,209,0.5)] backdrop-blur-md select-none"
           >
             <div className="flex items-center gap-0.5">
-              <Sword size={22} className="drop-shadow-[0_0_8px_#00FFD1]" />
-              <Target size={14} className="text-[#FF00E5] drop-shadow-[0_0_6px_#FF00E5]" />
+              <Sword size={20} className="drop-shadow-[0_0_8px_#00FFD1]" />
+              <Target size={12} className="text-[#FF00E5] drop-shadow-[0_0_6px_#FF00E5]" />
             </div>
-            <span className="text-[8px] sm:text-[9px] font-mono-tech font-black uppercase tracking-wider leading-none mt-1 text-center">
+            <span className="text-[7.5px] sm:text-[8.5px] font-mono-tech font-black uppercase tracking-wider leading-none mt-0.5 text-center">
               TAKEDOWN
             </span>
           </button>
@@ -501,12 +506,12 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
             id="btn-action-dash"
             type="button"
             onPointerDown={handleActionClick(onDash)}
-            onClick={handleActionClick(onDash)}
+            onTouchStart={handleActionClick(onDash)}
             aria-label="Hyper Dash"
-            className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 border-[#FF00E5] bg-[#120520]/95 hover:bg-[#FF00E5]/20 active:bg-[#FF00E5] text-[#FF00E5] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_18px_rgba(255,0,229,0.45)] backdrop-blur-md"
+            className="w-11 h-11 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-2xl border-2 border-[#FF00E5] bg-[#120520]/95 hover:bg-[#FF00E5]/20 active:bg-[#FF00E5] text-[#FF00E5] active:text-black flex flex-col items-center justify-center transition-transform active:scale-90 cursor-pointer touch-manipulation shadow-[0_0_18px_rgba(255,0,229,0.45)] backdrop-blur-md select-none"
           >
-            <Zap size={20} className="drop-shadow-[0_0_8px_#FF00E5]" />
-            <span className="text-[7.5px] sm:text-[8px] font-mono-tech font-bold tracking-wider uppercase leading-none mt-1">
+            <Zap size={18} className="drop-shadow-[0_0_8px_#FF00E5]" />
+            <span className="text-[7px] sm:text-[8px] font-mono-tech font-bold tracking-wider uppercase leading-none mt-0.5">
               DASH
             </span>
           </button>

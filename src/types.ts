@@ -407,7 +407,8 @@ export type PlayerActionState =
   | 'SLIDING' 
   | 'JUMPING' 
   | 'HACKING' 
-  | 'OVERDRIVE';
+  | 'OVERDRIVE'
+  | 'FALLING_INTO_VOID';
 
 // Top-down 360-degree Cyberpunk Player Interface
 export interface Player {
@@ -446,6 +447,10 @@ export interface Player {
   animTimer: number;
   animFrame: number;
   takedownAnimTimer?: number;
+
+  // Abyss Falling States
+  isFallingIntoAbyss?: boolean;
+  fallingTimer?: number;
 
   // Dimensions & Hitbox
   radius: number;
@@ -488,11 +493,15 @@ export type TileType =
   | 'TECH_GRID'
   | 'DATA_STREAM'
   | 'ALLEYWAY'
-  | 'BARRIER_WALL';
+  | 'BARRIER_WALL'
+  | 'BROKEN_FLOOR'
+  | 'CHASM_VOID';
 
 export interface Tile {
   type: TileType;
   walkable: boolean;
+  isPitHazard?: boolean;
+  crackSeed?: number;
   color: string;
   glowColor?: string;
   elevation?: number;
@@ -728,7 +737,9 @@ export type BacteriaAIState =
   | 'ADAPTIVE_EVASION_B' // Duck & Under-Roll Flank
   | 'ADAPTIVE_EVASION_C' // Tactical Smoke & Decoy Split
   | 'ADAPTIVE_EVASION_D' // Frame-Perfect Parry Stance
-  | 'VAULT_PLUNGE_SLAM'; // Plunging Aerial Counter Attack
+  | 'VAULT_PLUNGE_SLAM' // Plunging Aerial Counter Attack
+  | 'PIT_RANGED_ATTACK' // Ranged bacterial acid splash attack when separated by pit hazard
+  | 'PIT_AVOID_NAV'; // Steer around explosion crater rim on solid ground
 
 export type BacteriaVariant = 
   | 'MUTATED_ORGANIC'
@@ -847,6 +858,10 @@ export interface EnemyBacteria {
   flashlightExposureTimer?: number;
   empChargeTimer?: number;
   empCooldown?: number;
+  // Pit Hazard & Crater Navigation / Ranged Bio-Attack
+  pitAttackCooldown?: number;
+  pitNavAngle?: number;
+  pitBlockedPlayer?: boolean;
 }
 
 export interface BossState {
@@ -936,6 +951,8 @@ export type CollectibleType =
   | 'EXOTIC_WEAPON_DROP'
   | 'SURRENDER_BRIEFCASE';
 
+export type WeaponDropModel = WeaponType | 'KATANA';
+
 export interface Collectible {
   id: number;
   type: CollectibleType;
@@ -950,7 +967,7 @@ export interface Collectible {
   rotation?: number;
   spinSpeed?: number;
   coreIndex?: number; // 1, 2, 3 for encrypted bio-cores
-  weaponDropType?: WeaponType;
+  weaponDropType?: WeaponDropModel;
 }
 
 // ============================================================================
@@ -1194,6 +1211,34 @@ export type PlayerCombatMove =
   | 'JUMP_SLAM'
   | 'IDLE_TURTLE';
 
+// --- DAILY MISSION DIRECTIVE ARCHITECTURE ---
+export type DailyMissionType = 
+  | 'BIO_CORE_HARVEST'
+  | 'STEALTH_ASSASSIN'
+  | 'COMBO_OVERDRIVE'
+  | 'ENEMY_PURGE'
+  | 'CHASM_ACROBAT'
+  | 'CHRONO_SPRINT'
+  | 'CYBER_SURVIVOR';
+
+export interface DailyMission {
+  id: string;
+  dateKey: string; // e.g. '2026-08-29'
+  title: string;
+  codeName: string; // e.g. 'PROTOCOL: OMEGA_SIPHON'
+  description: string;
+  category: DailyMissionType;
+  difficulty: 'STANDARD' | 'HARD' | 'APEX_ELITE';
+  targetValue: number;
+  currentValue: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+  rewardCredits: number;
+  rewardXp: number;
+  rewardBadge: string;
+  accentColor: string;
+}
+
 export interface ProAICombatDirectorState {
   playerActionHistory: PlayerCombatMove[];
   repeatedMovePunishRate: number; // 0.0 to 0.95
@@ -1202,4 +1247,36 @@ export interface ProAICombatDirectorState {
   executionerModeActive: boolean;
   cognitivePressureIntensity: number; // 0.0 to 1.0 (controls screen vignette throb and FOV shrink)
 }
+
+// --- ADVANCED DYNAMIC COMBO INPUT & AI PREDICTION ARCHITECTURE ---
+export type DynamicComboInputType = 'LEFT_CLICK' | 'RIGHT_CLICK' | 'ACTION_KEY';
+
+export interface DynamicComboStep {
+  input: DynamicComboInputType;
+  label: string;
+  icon: string;
+  timestamp: number;
+}
+
+export interface DynamicComboState {
+  currentSequence: DynamicComboStep[];
+  consecutiveSameInputCount: number;
+  lastInputType: DynamicComboInputType | null;
+  damageMultiplier: number;
+  isMashed: boolean;
+  isFinisherReady: boolean;
+  isCriticalFinisherHit: boolean;
+  activeComboTimeout: number; // in frames (e.g. 120 frames / 2.0s)
+  comboStepIndex: number; // 0, 1, 2, 3
+  feedbackBanner: string | null;
+  feedbackColor: string;
+  feedbackTimer: number;
+}
+
+export interface EnemyComboPredictionResult {
+  predicted: boolean;
+  defenseType: 'EVASION_DASH' | 'DEFENSIVE_BLOCK' | 'NONE';
+  mitigationRatio: number; // e.g. 1.0 (evaded 100%), 0.85 (blocked 85%)
+}
+
 

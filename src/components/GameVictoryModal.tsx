@@ -26,7 +26,7 @@ export const GameVictoryModal: React.FC<GameVictoryModalProps> = ({
     >
       <div
         id="game-victory-panel"
-        className="w-full max-w-xl bg-[#0e071e]/95 border-2 border-[#FFD700] shadow-[0_0_60px_rgba(255,215,0,0.4)] p-6 sm:p-8 rounded-none relative overflow-hidden flex flex-col gap-5 font-mono-tech"
+        className="w-full max-w-xl max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-none bg-[#0e071e]/95 border-2 border-[#FFD700] shadow-[0_0_60px_rgba(255,215,0,0.4)] p-4 sm:p-7 rounded-none relative overflow-hidden flex flex-col gap-4 sm:gap-5 font-mono-tech"
       >
         {/* Holographic Top Banner Accent */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#FF00E5] via-[#FFD700] to-[#00FFD1] shadow-[0_0_20px_#FFD700]"></div>

@@ -235,62 +235,74 @@ export const CombatGuideMenu: React.FC<CombatGuideMenuProps> = ({ isOpen, onClos
           {/* TAB 3: HARDCORE AI RULES */}
           {activeTab === 'AI_RULES' && (
             <div className="space-y-3">
-              {/* Rule 1: AI Memory Buffer */}
+              {/* Rule 1: Dynamic Combo Input System & Anti-Mash Penalty */}
               <div className="bg-rose-950/30 border border-rose-500/40 p-3.5 rounded">
                 <div className="flex items-center gap-2 text-[#FF0055] font-bold text-sm mb-1">
                   <AlertTriangle size={16} />
-                  <span>1. AI MEMORY BUFFER (ANTI-SPAM PUNISHMENT)</span>
+                  <span>1. DYNAMIC COMBO INPUTS & ANTI-MASH PENALTY</span>
                 </div>
                 <p className="text-rose-200/90 text-xs">
-                  The AI Director logs your last 5 combat actions into a neural buffer. If you spam identical attacks (e.g. 3 consecutive slashes or non-stop blaster fire), enemies <strong className="text-white">predict your pattern</strong>, dynamically scaling their Evasion & Parry rate to <strong className="text-rose-400">95%</strong>.
+                  Single-button spamming (e.g., Left Click ➔ Left Click ➔ Left Click) is heavily penalized: your attack damage drops to <strong className="text-rose-400">25%-40%</strong> and triggers blunt hit sound feedback.
                 </p>
-                <div className="mt-2 text-[11px] text-amber-300 font-semibold bg-black/50 p-2 rounded border border-amber-500/30">
-                  ⚡ Warning: If an enemy parries your strike, you will suffer a <strong className="text-white">15-frame hit-stun lock</strong>, allowing the enemy to vault overhead and plunge-slam you!
+                <div className="mt-2 text-[11px] text-[#00FFD1] font-semibold bg-black/60 p-2.5 rounded border border-[#00FFD1]/40">
+                  ⚡ <strong className="text-white">To unleash Maximum 2.5x Critical Damage:</strong> Rotate your inputs in dynamic sequences:
+                  <div className="mt-1 font-mono-tech text-xs text-[#FFE600] flex items-center gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 bg-cyan-950 border border-cyan-500/50 rounded text-cyan-300">⚔️ Left Click (Slash)</span>
+                    <span>➔</span>
+                    <span className="px-1.5 py-0.5 bg-purple-950 border border-purple-500/50 rounded text-purple-300">🔫 Right Click (Shoot)</span>
+                    <span>➔</span>
+                    <span className="px-1.5 py-0.5 bg-amber-950 border border-amber-500/50 rounded text-amber-300">⚡ Action/Key (Dash / Crouch / Hack)</span>
+                    <span>=</span>
+                    <span className="px-2 py-0.5 bg-yellow-500/20 border border-yellow-400 text-yellow-300 font-black rounded shadow-[0_0_10px_#FFE600]">💥 2.5x CRITICAL FINISHER</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Rule 2: 4 Evasion Types */}
-              <div className="bg-black/70 border border-cyan-500/30 p-3.5 rounded">
-                <div className="text-cyan-300 font-bold text-xs uppercase mb-2 flex items-center gap-2">
-                  <Shield size={14} className="text-[#00FFD1]" />
-                  <span>2. THE 4 ADAPTIVE ENEMY EVASION TYPES</span>
+              {/* Rule 2: 75% Tactical AI Combo Prediction */}
+              <div className="bg-amber-950/30 border border-amber-500/40 p-3.5 rounded">
+                <div className="flex items-center gap-2 text-[#FFE600] font-bold text-sm mb-1">
+                  <Cpu size={16} className="text-[#FFE600]" />
+                  <span>2. 75% TACTICAL AI COMBO PREDICTION</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                  <div className="border border-cyan-500/20 p-2 rounded bg-cyan-950/20">
-                    <span className="text-[#00FFD1] font-bold block mb-0.5">TYPE A: SIDE-STRAFE DASH</span>
-                    <p className="text-cyan-200/70">
-                      Rapid perpendicular glitch-dash with a 50% chance to counter-pivot back and flank your position.
+                <p className="text-amber-200/90 text-xs">
+                  The Enemy AI Director tracks and memorizes your live input sequences. When you initiate a high-damage combo sequence, the enemy has a <strong className="text-white">75% tactical chance</strong> to predict your final finisher input:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[11px]">
+                  <div className="border border-cyan-500/30 p-2 rounded bg-cyan-950/30">
+                    <span className="text-[#00FFD1] font-bold block mb-0.5">💨 PREDICTIVE EVASION DASH</span>
+                    <p className="text-cyan-200/80">
+                      The enemy performs a rapid phase-dash away from your attack trajectory, completely evading all incoming finisher damage.
                     </p>
                   </div>
-
-                  <div className="border border-cyan-500/20 p-2 rounded bg-cyan-950/20">
-                    <span className="text-[#00FFD1] font-bold block mb-0.5">TYPE B: DUCK & UNDER-ROLL</span>
-                    <p className="text-cyan-200/70">
-                      Drops into low-profile invulnerability, rolling directly underneath your katana swing to strike from behind.
-                    </p>
-                  </div>
-
-                  <div className="border border-rose-500/20 p-2 rounded bg-rose-950/20">
-                    <span className="text-rose-400 font-bold block mb-0.5">TYPE C: TACTICAL SMOKE & DECOY</span>
-                    <p className="text-rose-200/70">
-                      Leaves an explosive decoy trap. Hitting the decoy causes sensory blindness and static distortion.
-                    </p>
-                  </div>
-
-                  <div className="border border-amber-500/20 p-2 rounded bg-amber-950/20">
-                    <span className="text-amber-400 font-bold block mb-0.5">TYPE D: FRAME-PERFECT PARRY</span>
-                    <p className="text-amber-200/70">
-                      12-frame defensive stance. Striking into this parry freezes you in stun and triggers an aerial vault slam.
+                  <div className="border border-amber-500/30 p-2 rounded bg-amber-950/30">
+                    <span className="text-[#FFE600] font-bold block mb-0.5">🛡️ PREDICTIVE DEFENSIVE BLOCK</span>
+                    <p className="text-amber-200/80">
+                      The enemy raises a hardened organic kinetic barrier, deflecting <strong className="text-white">85% of incoming combo damage</strong> and emitting a defensive shockwave.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Rule 3: Executioner Protocol */}
+              {/* Rule 3: Pit Hazard & Crater Edge Navigation */}
+              <div className="bg-cyan-950/30 border border-cyan-500/40 p-3.5 rounded">
+                <div className="flex items-center gap-2 text-[#00FFD1] font-bold text-sm mb-1">
+                  <Shield size={16} />
+                  <span>3. PIT HAZARD / CRATER EDGE NAVIGATION & RANGED FLUID ATTACK</span>
+                </div>
+                <p className="text-cyan-200/90 text-xs">
+                  Mutated Bacteria organisms now utilize spatial raycasts to detect explosion craters and pit abyss hazards:
+                </p>
+                <ul className="list-disc list-inside mt-1.5 space-y-1 text-cyan-200/80 text-[11px]">
+                  <li>Enemies will <strong className="text-white">never blindly walk into pits</strong>; they smartly steer and patrol around crater edges.</li>
+                  <li>If the direct path to the player is blocked by a pit hazard, the enemy halts movement and launches a <strong className="text-[#39FF14]">Ranged Bacterial Acid Splash fluid projectile</strong> directly across the chasm on a <strong className="text-white">2.0-second tactical cooldown</strong>.</li>
+                </ul>
+              </div>
+
+              {/* Rule 4: Executioner Protocol */}
               <div className="bg-purple-950/30 border border-purple-500/40 p-3.5 rounded">
                 <div className="flex items-center gap-2 text-[#FF00E5] font-bold text-sm mb-1">
                   <Flame size={16} />
-                  <span>3. EXECUTIONER PROTOCOL & COGNITIVE PRESSURE</span>
+                  <span>4. EXECUTIONER PROTOCOL & COGNITIVE PRESSURE</span>
                 </div>
                 <p className="text-purple-200/90 text-xs">
                   Remaining stationary or turtling passively for <strong className="text-white">&gt;1.5 seconds</strong> activates Executioner Protocol:
